@@ -24,9 +24,9 @@ class WheelController {
     private:
 
         MQTTClient client;
-        bool softwareEstop;
-        bool hardwareEstop;
-        int timeout;
+        bool softwareEstop;     // whether the software estop was triggered
+        bool hardwareEstop;     // whether the hardware estop was triggered
+        int timeout;            // timeout millis counter
 
         // whether the bot should be e-stop
         bool estop() {
@@ -38,6 +38,7 @@ class WheelController {
             if(estop) { return; }
             int pwm = msg.toInt();
             analogWrite(pwm, POWER_PIN);
+            this->timeout = ESTOP_TIMEOUT_MILLIS;
         }
 
         // steer pin callback, sends PWM to steer servo
@@ -45,6 +46,7 @@ class WheelController {
             if(estop) { return; }
             int pwm = msg.toInt();
             analogWrite(pwm, STEER_PIN);
+            this->timeout = ESTOP_TIMEOUT_MILLIS;
         }
 
         // brake pin callback, sends digital to brake channel
@@ -52,29 +54,33 @@ class WheelController {
             if(estop) { return; }
             int pwm = (msg.toInt() == 0) ? 0 : 255;
             analogWrite(pwm, BRAKE_PIN);
+            this->timeout = ESTOP_TIMEOUT_MILLIS;
         }
 
+        // estop message callback
         void estopCb(String& topic, String& msg) {
             this->softwareEstop = true;
         }
  
         void connect() {
-
+            // TODO: attempt to connect to MQTT, setup pub/sub
         }
 
+        // pin logic for estop 
         void checkEStopLoop() {
-            if(digitalRead(ESTOP_IN_PIN) == 0) {
+            if(analogRead(ESTOP_IN_PIN) < 127) {    // if the estop loop is low
                 this->hardwareEstop = true;
-                analogWrite(0, ESTOP_OUT_PIN);
+                analogWrite(0, ESTOP_OUT_PIN);  // disconnect estop loop
             }
             else {
                 this->hardwareEstop = false;
-                analogWrite(255, ESTOP_OUT_PIN);
             }
             if(estop()) {
-                analogWrite(255, BRAKE_PIN);
+                analogWrite(255, BRAKE_PIN);    // turn on brake
+                analogWrite(0, ESTOP_OUT_PIN);  // disconnect estop loop
             }
             else {
+                analogWrite(255, ESTOP_OUT_PIN);    // reconnect estop loop
                 this->timeout = (this->timeout > 0) ? this->timeout-1 : 0;
                 if(this->timeout == 0) {
                     this->softwareEstop = true;
@@ -89,13 +95,16 @@ class WheelController {
             this->client.begin(mqttAddress, port, wc);
         }
 
+        // MQTT and estop check loop
         void loop() {
             if(!this->client.connected()) {
                 this->softwareEstop = true;
                 connect();
             }
-            this->client.loop();
-            checkEStopLoop();
+            else {
+                this->client.loop();
+                checkEStopLoop();
+            }
             delay(1);
         }
 
