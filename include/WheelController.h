@@ -11,8 +11,7 @@
 #define POWER_PIN 14    // Pin used for wheel throttle power
 #define BRAKE_PIN 15    // Pin used for wheel braking toggle
 #define STEER_PIN 17    // Pin used for steering angle
-#define ESTOP_IN_PIN 36    // Pin used to take in E-Stop loop
-#define ESTOP_OUT_PIN 33    // Pin used to continue E-Stop loop
+#define ESTOP_IN_PIN 36    // Pin used to take observe E-Stop loop
 
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
 
@@ -27,6 +26,7 @@ class WheelController {
         bool softwareEstop;     // whether the software estop was triggered
         bool hardwareEstop;     // whether the hardware estop was triggered
         int timeout;            // timeout millis counter
+        String estopDebug;
 
         // whether the bot should be e-stop
         bool estop() {
@@ -70,17 +70,14 @@ class WheelController {
         void checkEStopLoop() {
             if(analogRead(ESTOP_IN_PIN) < 127) {    // if the estop loop is low
                 this->hardwareEstop = true;
-                analogWrite(0, ESTOP_OUT_PIN);  // disconnect estop loop
             }
             else {
                 this->hardwareEstop = false;
             }
             if(estop()) {
                 analogWrite(255, BRAKE_PIN);    // turn on brake
-                analogWrite(0, ESTOP_OUT_PIN);  // disconnect estop loop
             }
             else {
-                analogWrite(255, ESTOP_OUT_PIN);    // reconnect estop loop
                 this->timeout = (this->timeout > 0) ? this->timeout-1 : 0;
                 if(this->timeout == 0) {
                     this->softwareEstop = true;
