@@ -2,7 +2,7 @@
 #include <ETH.h>
 #include "MQTT.h"
 
-#define MESSAGE_BUFFERSIZE 1024
+#define HOSTNAME "wt32-frontleft"   // Network hostname for the board
 
 // Ethernet Setup Addresses
 IPAddress deviceIP(10,42,0,10);
@@ -16,7 +16,6 @@ IPAddress mqttAddress(10,42,0,4);
 WiFiClient wc;
 
 int lastMillis = 0;
-
 int pwm_signal = 0;
 
 void relay_message(String &topic, String &message) {
