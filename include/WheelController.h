@@ -11,7 +11,8 @@
 #define POWER_PIN 14    // Pin used for wheel throttle power
 #define BRAKE_PIN 15    // Pin used for wheel braking toggle
 #define STEER_PIN 17    // Pin used for steering angle
-#define ESTOP_PIN 36    // Pin used to inform of E-Stop activation
+#define ESTOP_IN_PIN 36    // Pin used to take in E-Stop loop
+#define ESTOP_OUT_PIN 33    // Pin used to continue E-Stop loop
 
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
 
@@ -54,11 +55,31 @@ class WheelController {
         }
 
         void estopCb(String& topic, String& msg) {
-            // TODO
+            this->softwareEstop = true;
         }
  
         void connect() {
 
+        }
+
+        void checkEStopLoop() {
+            if(digitalRead(ESTOP_IN_PIN) == 0) {
+                this->hardwareEstop = true;
+                analogWrite(0, ESTOP_OUT_PIN);
+            }
+            else {
+                this->hardwareEstop = false;
+                analogWrite(255, ESTOP_OUT_PIN);
+            }
+            if(estop()) {
+                analogWrite(255, BRAKE_PIN);
+            }
+            else {
+                this->timeout = (this->timeout > 0) ? this->timeout-1 : 0;
+                if(this->timeout == 0) {
+                    this->softwareEstop = true;
+                }
+            }
         }
 
     public:
@@ -66,6 +87,16 @@ class WheelController {
         WheelController(IPAddress mqttAddress, int port, WiFiClient wc) {
             this->client = MQTTClient(MESSAGE_BUFFERSIZE);
             this->client.begin(mqttAddress, port, wc);
+        }
+
+        void loop() {
+            if(!this->client.connected()) {
+                this->softwareEstop = true;
+                connect();
+            }
+            this->client.loop();
+            checkEStopLoop();
+            delay(1);
         }
 
 
