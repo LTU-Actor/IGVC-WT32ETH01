@@ -9,9 +9,10 @@
 
 // Pin definitions
 #define POWER_PIN 14    // wheel throttle power
-#define BRAKE_PIN 5     // wheel braking toggle
+#define BRAKE_PIN 12    // wheel braking toggle
+#define STEER_EN_PIN 5  // steering angle
 #define STEER_PIN 17    // steering angle
-#define REVERSE_PIN 32  // reversing wheel direction
+#define REVERSE_PIN 4   // reversing wheel direction
 #define ESTOP_IN_PIN 35 // observing E-Stop loop
 #define HALLA_PIN 15    // Hall A
 #define HALLB_PIN 36    // Hall B
