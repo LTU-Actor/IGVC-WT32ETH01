@@ -2,7 +2,7 @@
 
 // MQTT Setup
 MQTTClient client(MESSAGE_BUFFERSIZE);
-const IPAddress mqttAddress(192,168,0,2);
+const IPAddress mqttAddress(192,168,0,8);
 WiFiClient wc;
 const String clientName = "frontleft";
 
@@ -42,7 +42,7 @@ void setup() {
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
   while(!mqttConnect(clientName, client, topicCb));
-  
+  timeout = ESTOP_TIMEOUT_MILLIS;
 }
 
 void loop() {

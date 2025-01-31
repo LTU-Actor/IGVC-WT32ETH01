@@ -32,7 +32,7 @@
 
 extern bool softwareEstop = false;
 extern bool hardwareEstop = false;
-extern int timeout;
+extern int timeout = 0;
 
 bool estop() {
     return (softwareEstop || hardwareEstop);
@@ -98,10 +98,10 @@ bool mqttConnect(String name, MQTTClient& client, void callback(String&, String&
     if (!client.connect(name.c_str())) {
         return false;
     }
-    client.subscribe(name + "/" + POWER_TOPIC);
-    client.subscribe(name + "/" + BRAKE_TOPIC);
-    client.subscribe(name + "/" + STEER_TOPIC);
-    client.subscribe(name + "/" + ESTOP_TOPIC);
+    client.subscribe("/" + name + "/" + POWER_TOPIC);
+    client.subscribe("/" + name + "/" + BRAKE_TOPIC);
+    client.subscribe("/" + name + "/" + STEER_TOPIC);
+    client.subscribe("/" + name + "/" + ESTOP_TOPIC);
     client.onMessage(callback);
     return true;
 }
