@@ -1,5 +1,10 @@
 #include "WheelController.h"
 
+/*
+94:3c:c6:39:cd:8b --- frontleft
+
+*/
+
 // MQTT Setup
 MQTTClient client(MESSAGE_BUFFERSIZE);
 const IPAddress mqttAddress(192,168,0,8);
@@ -37,7 +42,10 @@ void setup() {
   pinSetup();
 
   // Ethernet networking setup
+  
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
+  while(!ETH.linkUp());
+
 
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
