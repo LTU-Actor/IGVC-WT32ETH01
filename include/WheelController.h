@@ -7,6 +7,9 @@
 #include <ETH.h>
 #include "MQTT.h"
 
+// MQTT client name
+#define CLIENT_NAME "frontleft"
+
 // Pin definitions
 #define POWER_PIN 14    // wheel throttle power
 #define BRAKE_PIN 12    // wheel braking toggle
@@ -20,17 +23,18 @@
 
 // MQTT definitions
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
-#define POWER_TOPIC "/power"
-#define BRAKE_TOPIC "/brake"
-#define STEER_TOPIC "/steer"
-#define ESTOP_TOPIC "/estop"
-#define HALLA_TOPIC "/hallA"
-#define HALLB_TOPIC "/hallB"
-#define HALLC_TOPIC "/hallC"
-#define DEBUG_TOPIC "/debug"
+#define POWER_TOPIC "power"
+#define BRAKE_TOPIC "brake"
+#define STEER_TOPIC "steer"
+#define ESTOP_TOPIC "estop"
+#define HALLA_TOPIC "hallA"
+#define HALLB_TOPIC "hallB"
+#define HALLC_TOPIC "hallC"
+#define DEBUG_TOPIC "debug"
 
 #define ESTOP_TIMEOUT_MILLIS 50     // Number of milliseconds to wait between messages to trigger an estop
 
+extern MQTTClient client(MESSAGE_BUFFERSIZE);
 extern bool softwareEstop = false;
 extern bool hardwareEstop = false;
 extern int timeout = 0;
@@ -39,8 +43,18 @@ bool estop() {
     return (softwareEstop || hardwareEstop);
 }
 
+// publishes a message on to the debug topic
+void debug(const String& msg) {
+    if(!client.connected()) {
+        return;
+    }
+    client.publish(("/" + String(CLIENT_NAME) + "/" + DEBUG_TOPIC), msg);
+}
+
 // power pin callback, sends PWM to wheel
 void powerCb(String& msg) {
+    Serial.println("got power message: " + msg);
+    debug("got power message: " + msg);
     int pwm = msg.toInt();
     if(pwm < 0) {
         analogWrite(REVERSE_PIN, 255);
@@ -57,6 +71,7 @@ void powerCb(String& msg) {
 void steerCb(String& msg) {
     int pwm = msg.toInt();
     analogWrite(STEER_PIN, pwm);
+    
 }
 
 // brake pin callback, sends digital to brake channel
@@ -72,6 +87,8 @@ void estopCb(String& msg) {
 
 // general callback that sorts topics to their specific callbacks
 void topicCb(String& topic, String& msg) {
+    Serial.println("got message on topic " + topic);
+    debug("got message on topic " + topic);
     if(topic.endsWith(ESTOP_TOPIC)) {
         estopCb(msg);
     }
@@ -91,21 +108,23 @@ void topicCb(String& topic, String& msg) {
 
 
 // establishes client connection to MQTT and sets callback
-bool mqttConnect(String name, MQTTClient& client, void callback(String&, String&)) {
+bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
     if (!ETH.linkUp()) {
         return false;
     }
 
-    if (!client.connect(name.c_str())) {
+    if (!client.connect(CLIENT_NAME)) {
         return false;
     }
-    client.subscribe("/" + name + "/" + POWER_TOPIC);
-    client.subscribe("/" + name + "/" + BRAKE_TOPIC);
-    client.subscribe("/" + name + "/" + STEER_TOPIC);
-    client.subscribe("/" + name + "/" + ESTOP_TOPIC);
+    client.subscribe("/" + String(CLIENT_NAME) + "/" + POWER_TOPIC);
+    client.subscribe("/" + String(CLIENT_NAME) + "/" + BRAKE_TOPIC);
+    client.subscribe("/" + String(CLIENT_NAME) + "/" + STEER_TOPIC);
+    client.subscribe("/" + String(CLIENT_NAME) + "/" + ESTOP_TOPIC);
     client.onMessage(callback);
     return true;
 }
+
+
 
 
 

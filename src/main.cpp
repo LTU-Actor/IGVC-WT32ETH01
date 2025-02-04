@@ -6,10 +6,9 @@
 */
 
 // MQTT Setup
-MQTTClient client(MESSAGE_BUFFERSIZE);
-const IPAddress mqttAddress(192,168,0,8);
+const IPAddress mqttAddress(192,168,0,3);
 WiFiClient wc;
-const String clientName = "frontleft";
+
 
 
 // sets up pins for input/output
@@ -49,24 +48,27 @@ void setup() {
 
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
-  while(!mqttConnect(clientName, client, topicCb));
+  while(!mqttConnect(client, topicCb));
   timeout = ESTOP_TIMEOUT_MILLIS;
 }
 
 void loop() {
 
-  softwareEstop = (timeout == 0) ? true : softwareEstop;
+  if (timeout == 0) {
+    softwareEstop = true;
+    debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
+  }
   estopLoop();
 
   if(!client.connected()) {
     softwareEstop = true;
-    mqttConnect(clientName, client, topicCb);
+    mqttConnect(client, topicCb);
   }
   else {
     client.loop();
   }
 
-  timeout = (timeout == 0) ? 0 : timeout-10;
+  timeout = (timeout == 0) ? 0 : timeout-1;
   delay(10);
   
 }
