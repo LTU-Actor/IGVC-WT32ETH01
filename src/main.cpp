@@ -5,6 +5,8 @@
 
 */
 
+#define LOOP_DELAY_MS 10 // how long to delay after each loop
+
 // MQTT Setup
 const IPAddress mqttAddress(192,168,0,3);
 WiFiClient wc;
@@ -13,22 +15,12 @@ WiFiClient wc;
 
 // sets up pins for input/output
 void pinSetup() {
-    pinMode(POWER_PIN, OUTPUT);
+    ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
+    ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
+    ledcSetup(STEER_PWM_CHANNEL, 40000, 8);
+    ledcAttachPin(STEER_PIN, STEER_PWM_CHANNEL);
     pinMode(BRAKE_PIN, OUTPUT);
-    pinMode(STEER_PIN, OUTPUT);
     pinMode(REVERSE_PIN, OUTPUT);
-
-    pinMode(ESTOP_IN_PIN, INPUT);
-    pinMode(HALLA_PIN, INPUT);
-    pinMode(HALLB_PIN, INPUT);
-    pinMode(HALLC_PIN, INPUT);
-}
-
-void estopLoop() {
-  hardwareEstop = analogRead(ESTOP_IN_PIN) < 127;
-  if(estop()) {
-    analogWrite(BRAKE_PIN, 255);
-  }
 }
 
 
@@ -55,21 +47,20 @@ void setup() {
 void loop() {
 
   if (timeout == 0) {
-    softwareEstop = true;
+    analogWrite(BRAKE_PIN, 0);
     debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
-  estopLoop();
 
   if(!client.connected()) {
-    softwareEstop = true;
+    timeout = 0;
     mqttConnect(client, topicCb);
   }
   else {
     client.loop();
   }
 
-  timeout = (timeout == 0) ? 0 : timeout-1;
-  delay(10);
+  timeout = max(0, timeout - LOOP_DELAY_MS);
+  delay(LOOP_DELAY_MS);
   
 }
 

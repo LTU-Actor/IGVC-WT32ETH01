@@ -13,35 +13,25 @@
 // Pin definitions
 #define POWER_PIN 14    // wheel throttle power
 #define BRAKE_PIN 12    // wheel braking toggle
-#define STEER_EN_PIN 5  // steering angle
 #define STEER_PIN 17    // steering angle
 #define REVERSE_PIN 4   // reversing wheel direction
-#define ESTOP_IN_PIN 35 // observing E-Stop loop
-#define HALLA_PIN 15    // Hall A
-#define HALLB_PIN 36    // Hall B
-#define HALLC_PIN 39    // Hall C
+
+#define POWER_PWM_CHANNEL 0 // LEDC Channel for power
+#define STEER_PWM_CHANNEL 1 // LEDC Channel for steering
 
 // MQTT definitions
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
-#define POWER_TOPIC "power"
-#define BRAKE_TOPIC "brake"
-#define STEER_TOPIC "steer"
-#define ESTOP_TOPIC "estop"
-#define HALLA_TOPIC "hallA"
-#define HALLB_TOPIC "hallB"
-#define HALLC_TOPIC "hallC"
-#define DEBUG_TOPIC "debug"
+#define POWER_TOPIC "power" // mqtt topic name for power
+#define BRAKE_TOPIC "brake" // mqtt topic name for braking
+#define STEER_TOPIC "steer" // mqtt topic name for steering
+#define DEBUG_TOPIC "debug" // mqtt topic name for debug info
+
+
 
 #define ESTOP_TIMEOUT_MILLIS 50     // Number of milliseconds to wait between messages to trigger an estop
 
 extern MQTTClient client(MESSAGE_BUFFERSIZE);
-extern bool softwareEstop = false;
-extern bool hardwareEstop = false;
 extern int timeout = 0;
-
-bool estop() {
-    return (softwareEstop || hardwareEstop);
-}
 
 // publishes a message on to the debug topic
 void debug(const String& msg) {
@@ -51,18 +41,16 @@ void debug(const String& msg) {
     client.publish(("/" + String(CLIENT_NAME) + "/" + DEBUG_TOPIC), msg);
 }
 
-// power pin callback, sends PWM to wheel
+// power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
-    Serial.println("got power message: " + msg);
-    debug("got power message: " + msg);
     int pwm = msg.toInt();
     if(pwm < 0) {
-        analogWrite(REVERSE_PIN, 255);
-        analogWrite(POWER_PIN, pwm * -1);
+        analogWrite(REVERSE_PIN, 0);
+        ledcWrite(POWER_PWM_CHANNEL, pwm);
     }
     else {
         analogWrite(REVERSE_PIN, 255);
-        analogWrite(POWER_PIN, pwm);
+        ledcWrite(POWER_PWM_CHANNEL, pwm);
     }
     
 }
@@ -70,7 +58,7 @@ void powerCb(String& msg) {
 // steer pin callback, sends PWM to steer servo
 void steerCb(String& msg) {
     int pwm = msg.toInt();
-    analogWrite(STEER_PIN, pwm);
+    ledcWrite(STEER_PWM_CHANNEL, pwm);
     
 }
 
@@ -80,28 +68,18 @@ void brakeCb(String& msg) {
     analogWrite(BRAKE_PIN, pwm);
 }
 
-// estop pin callback
-void estopCb(String& msg) {
-    softwareEstop = (msg == "false") ? false : true;
-}
-
 // general callback that sorts topics to their specific callbacks
 void topicCb(String& topic, String& msg) {
     Serial.println("got message on topic " + topic);
     debug("got message on topic " + topic);
-    if(topic.endsWith(ESTOP_TOPIC)) {
-        estopCb(msg);
+    if(topic.endsWith(POWER_TOPIC)) {
+        powerCb(msg);
     }
-    else if(estop()) {
-        if(topic.endsWith(POWER_TOPIC)) {
-            powerCb(msg);
-        }
-        else if(topic.endsWith(BRAKE_TOPIC)) {
-            brakeCb(msg);
-        }
-        else if(topic.endsWith(STEER_TOPIC)) {
-            steerCb(msg);
-        }
+    else if(topic.endsWith(BRAKE_TOPIC)) {
+        brakeCb(msg);
+    }
+    else if(topic.endsWith(STEER_TOPIC)) {
+        steerCb(msg);
     }
     timeout = ESTOP_TIMEOUT_MILLIS;
 }
@@ -119,7 +97,6 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
     client.subscribe("/" + String(CLIENT_NAME) + "/" + POWER_TOPIC);
     client.subscribe("/" + String(CLIENT_NAME) + "/" + BRAKE_TOPIC);
     client.subscribe("/" + String(CLIENT_NAME) + "/" + STEER_TOPIC);
-    client.subscribe("/" + String(CLIENT_NAME) + "/" + ESTOP_TOPIC);
     client.onMessage(callback);
     return true;
 }
