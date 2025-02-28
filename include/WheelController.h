@@ -12,7 +12,7 @@
 
 // Pin definitions
 #define POWER_PIN 14    // wheel throttle power
-#define BRAKE_PIN 12    // wheel braking toggle
+#define BRAKE_PIN 15    // wheel braking toggle
 #define STEER_PIN 17    // steering angle
 #define REVERSE_PIN 4   // reversing wheel direction
 
@@ -33,8 +33,10 @@
 extern MQTTClient client(MESSAGE_BUFFERSIZE);
 extern int timeout = 0;
 
+bool direction = true;
+
 // publishes a message on to the debug topic
-void debug(const String& msg) {
+void debug(const String& msg) { 
     if(!client.connected()) {
         return;
     }
@@ -44,14 +46,20 @@ void debug(const String& msg) {
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
     int pwm = msg.toInt();
-    if(pwm < 0) {
+    if(!direction && pwm >= 0) {
+        direction = true;
         analogWrite(REVERSE_PIN, 0);
-        ledcWrite(POWER_PWM_CHANNEL, pwm);
+        ledcWrite(POWER_PWM_CHANNEL, 0);
+        delay(10);
     }
-    else {
+    else if(direction && pwm < 0) {
+        direction = false;
         analogWrite(REVERSE_PIN, 255);
-        ledcWrite(POWER_PWM_CHANNEL, pwm);
+        ledcWrite(POWER_PWM_CHANNEL, 0);
+        pwm *= -1;
+        delay(10);
     }
+    ledcWrite(POWER_PWM_CHANNEL, pwm);
     
 }
 
@@ -65,12 +73,12 @@ void steerCb(String& msg) {
 // brake pin callback, sends digital to brake channel
 void brakeCb(String& msg) {
     int pwm = (msg.toInt() == 0) ? 0 : 255;
+    ledcWrite(POWER_PWM_CHANNEL, 0);
     analogWrite(BRAKE_PIN, pwm);
 }
 
 // general callback that sorts topics to their specific callbacks
 void topicCb(String& topic, String& msg) {
-    Serial.println("got message on topic " + topic);
     debug("got message on topic " + topic);
     if(topic.endsWith(POWER_TOPIC)) {
         powerCb(msg);

@@ -47,7 +47,9 @@ void setup() {
 void loop() {
 
   if (timeout == 0) {
-    analogWrite(BRAKE_PIN, 0);
+    // analogWrite(BRAKE_PIN, 0);
+    String brake(0);
+    brakeCb(brake);
     debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
