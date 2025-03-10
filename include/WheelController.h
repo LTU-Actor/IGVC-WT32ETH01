@@ -8,7 +8,7 @@
 #include "MQTT.h"
 
 // MQTT client name
-#define CLIENT_NAME "frontleft"
+#define CLIENT_NAME "testboard"
 
 // Pin definitions
 #define POWER_PIN 14    // wheel throttle power
