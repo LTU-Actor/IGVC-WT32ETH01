@@ -9,15 +9,15 @@
 #include "CytronMotorDriver.h"
 #include "AS5600.h"
 #include "SimpleFOC.h"
+#include "PID_v1.h"
 
 // MQTT client name
 #define CLIENT_NAME "testboard"
 
 // Linear motor controller pin definitions
-#define POWER_PIN  4   // wheel throttle power
+#define POWER_PIN  12   // wheel throttle power
 #define POWER_DIR_PIN 5   // wheel throttle direction
-#define BRAKE_PIN  3   // wheel braking toggle
-#define HALL_A_PIN 12 // hall sensor A
+#define HALL_A_PIN 4 // hall sensor A
 #define HALL_B_PIN 14 // hall sensor B
 #define HALL_C_PIN 15 // hall sensor C
 
@@ -28,14 +28,14 @@
 #define ENC_SCL_PIN 32 // steering encoder scl
 #define ENC_SDA_PIN 33 // steering encoder sda
 
-
-
-#define POWER_PWM_CHANNEL 0 // LEDC Channel for power
+// PID values
+#define K_P 2
+#define K_I 5
+#define K_D 1
 
 // MQTT definitions
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
 #define POWER_TOPIC "power" // mqtt topic name for power
-#define BRAKE_TOPIC "brake" // mqtt topic name for braking
 #define STEER_TOPIC "steer" // mqtt topic name for steering
 #define DEBUG_TOPIC "debug" // mqtt topic name for debug info
 #define ENC_DEBUG_TOPIC "encoder" // mqtt topic name for encoder debug info
@@ -47,12 +47,17 @@
 extern MQTTClient client(MESSAGE_BUFFERSIZE); // mqtt client
 extern int timeout = 0; // time in millis until controls time out
 
-CytronMD steerController(PWM_DIR, STEER_PIN, STEER_DIR_PIN); // steering controller for cytron MC
-extern AS5600 as5600(&Wire); // encoder wire 0
-extern HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
+double currentVelocity = 0.0;
+double outputVelocity = 0.0;
+double targetVelocity = 0.0;
+int targetAngle = 0;
 
-int target_speed = 0; // wheel target speed
-int target_angle = 0; // wheel target angle
+CytronMD steerController(PWM_DIR, STEER_PIN, STEER_DIR_PIN); // steering controller for cytron MC
+AS5600 as5600(&Wire); // encoder wire 0
+HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
+PID wheelController(&currentVelocity, &outputVelocity, &targetVelocity, K_P, K_I, K_D, DIRECT);
+
+
 
 void pub(const String& msg, const char* topic) {
     if(!client.connected()) {
@@ -71,33 +76,28 @@ void debug(const String& msg) {
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
     // TODO: Use hall feedback to do smooth acceleration and speed control
-    target_speed = msg.toInt();
-    
+    targetVelocity = msg.toDouble();
+    if(targetVelocity >= 0) {
+        digitalWrite(POWER_DIR_PIN, LOW);
+    }
+    else {
+        digitalWrite(POWER_DIR_PIN, HIGH);
+        targetVelocity *= -1;
+    }
 }
 
 // steer pin callback, sends PWM to steer motor
 void steerCb(String& msg) {
     // TODO: Use the Cytron package to arrive at steering angle with PID control
-    target_angle = msg.toInt();
-    steerController.setSpeed(target_angle);
+    targetAngle = msg.toInt();
+    steerController.setSpeed(targetAngle);
     
-}
-
-// brake pin callback, sends digital to brake channel
-void brakeCb(String& msg) {
-    int pwm = (msg.toInt() == 0) ? 0 : 255;
-    ledcWrite(POWER_PWM_CHANNEL, 0);
-    analogWrite(BRAKE_PIN, pwm);
 }
 
 // general callback that sorts topics to their specific callbacks
 void topicCb(String& topic, String& msg) {
-    debug("got message on topic " + topic);
     if(topic.endsWith(POWER_TOPIC)) {
         powerCb(msg);
-    }
-    else if(topic.endsWith(BRAKE_TOPIC)) {
-        brakeCb(msg);
     }
     else if(topic.endsWith(STEER_TOPIC)) {
         steerCb(msg);
@@ -116,7 +116,6 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
         return false;
     }
     client.subscribe("/" + String(CLIENT_NAME) + "/" + POWER_TOPIC);
-    client.subscribe("/" + String(CLIENT_NAME) + "/" + BRAKE_TOPIC);
     client.subscribe("/" + String(CLIENT_NAME) + "/" + STEER_TOPIC);
     client.onMessage(callback);
     return true;
@@ -134,9 +133,9 @@ void doC(){hall.handleC();}
 
 void hallLoop() {
     hall.update();
-    double vel = hall.getVelocity();
+    currentVelocity = hall.getVelocity();
     double angle = hall.getAngle();
-    pub(String(vel), HALL_VEL_TOPIC);
+    pub(String(currentVelocity), HALL_VEL_TOPIC);
     pub(String(angle), HALL_ANGLE_TOPIC);
 
     int a = digitalRead(HALL_A_PIN);
@@ -144,6 +143,11 @@ void hallLoop() {
     int c = digitalRead(HALL_C_PIN);
 
     pub(String("A: ") + String(a) + String("\nB: ") + String(b) + String("\nC: ") + String(c), "hall");
+}
+
+void wheelLoop() {
+    debug(String("Computed Velocity: ") + String(outputVelocity));
+    wheelController.Compute();
 }
 
 

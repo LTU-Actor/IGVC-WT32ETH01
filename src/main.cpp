@@ -13,11 +13,10 @@ WiFiClient wc;
 
 
 // sets up pins for input/output
-void pinSetup() {
-    ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
-    ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
+void deviceSetup() {
+    // ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
+    // ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
     pinMode(POWER_DIR_PIN, OUTPUT);
-    pinMode(BRAKE_PIN, OUTPUT);
     pinMode(STEER_PIN, OUTPUT);
     pinMode(STEER_DIR_PIN, OUTPUT);
 
@@ -25,14 +24,20 @@ void pinSetup() {
     as5600.begin(ENC_SCL_PIN);  //  set direction pin.
     as5600.setDirection(AS5600_CLOCK_WISE);  // default, just be explicit.
 
-    // pinMode(HALL_A_PIN, INPUT);
-    // pinMode(HALL_B_PIN, INPUT);
-    // pinMode(HALL_C_PIN, INPUT);
     hall.pullup = Pullup::USE_INTERN;
     hall.init();
     hall.enableInterrupts(doA, doB, doC);
+
+    wheelController.SetMode(AUTOMATIC);
+
     _delay(1000);
    
+}
+
+void deviceLoop() {
+  steerLoop();
+  hallLoop();
+  wheelLoop();
 }
 
 
@@ -42,11 +47,9 @@ void setup() {
   Serial.begin(115200);
   while(!Serial);
 
-  pinSetup();
+  deviceSetup();
   
-
   // Ethernet networking setup
-  
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   while(!ETH.linkUp());
 
@@ -62,7 +65,7 @@ void loop() {
   if (timeout == 0) {
     // analogWrite(BRAKE_PIN, 0);
     String brake(0);
-    brakeCb(brake);
+    powerCb(brake);
     debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
@@ -74,10 +77,8 @@ void loop() {
     client.loop();
   }
 
-  // hall.update();
-  steerLoop();
-  hallLoop();
-  
+  deviceLoop();
+
   timeout = max(0, timeout - LOOP_DELAY_MS);
   delay(LOOP_DELAY_MS);
   
