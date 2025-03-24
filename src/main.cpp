@@ -54,7 +54,7 @@ void loop() {
 
   if(!client.connected()) {
     timeout = 0;
-    // mqttConnect(client, topicCb);
+    mqttConnect(client, topicCb);
   }
   else {
     if (timeout == 0) {
@@ -68,7 +68,6 @@ void loop() {
 
   timeout = max(0, timeout - LOOP_DELAY_MS);
   delay(LOOP_DELAY_MS);
-  ElegantOTA.loop();
-  // Serial.println("loop");
+  // ElegantOTA.loop();
 }
 

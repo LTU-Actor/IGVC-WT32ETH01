@@ -41,4 +41,5 @@ void ota_setup() {
     ElegantOTA.onStart(onOTAStart);
     ElegantOTA.onProgress(onOTAProgress);
     ElegantOTA.onEnd(onOTAEnd);
+    server.begin();
 }
