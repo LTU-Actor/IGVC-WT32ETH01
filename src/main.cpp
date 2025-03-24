@@ -14,8 +14,8 @@ WiFiClient wc;
 
 // sets up pins for input/output
 void deviceSetup() {
-    // ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
-    // ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
+    ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
+    ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
     pinMode(POWER_DIR_PIN, OUTPUT);
     pinMode(STEER_PIN, OUTPUT);
     pinMode(STEER_DIR_PIN, OUTPUT);
