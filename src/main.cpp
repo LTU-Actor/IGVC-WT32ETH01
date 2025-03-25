@@ -80,7 +80,6 @@ void loop() {
   }
 
   deviceLoop();
-
   timeout = max(0, timeout - LOOP_DELAY_MS);
   delay(LOOP_DELAY_MS);
   ElegantOTA.loop();

@@ -11,8 +11,6 @@
 #include "SimpleFOC.h"
 #include "PID_v1.h"
 
-// MQTT client name
-#define CLIENT_NAME "testboard"
 
 /*
     Pin Notes
@@ -70,13 +68,52 @@ AS5600 as5600(&Wire); // encoder wire 0
 HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
 PID wheelController(&currentVelocity, &outputVelocity, &targetVelocity, K_P, K_I, K_D, DIRECT);
 
+String clientName() {
+    String mac = ETH.macAddress();
+    if (mac == String("A8:48:FA:08:59:57")) {
+        return "frontleft";
+    }
+    if (mac == String("A8:48:FA:08:81:67")) {
+        return "frontright";
+    }
+    if (mac == String("A8:48:FA:08:57:F3")) {
+        return "backleft";
+    }
+    if (mac == String("A8:03:2A:20:C7:9B")) {
+        return "backright";
+    }
+    if (mac == String("94:3C:C6:39:CD:8B")) {
+        return "testboard";
+    }
+    return "error";
+    
+    // switch (ETH.macAddress().c_str()) {
+    //     case String("A8:48:FA:08:59:57"):
+            
+    //         break;
+    //     case String("A8:48:FA:08:81:67"):
+    //         return "frontright";
+    //         break;
+    //     case String("A8:48:FA:08:57:F3"):
+    //         return "backleft";
+    //         break;
+    //     case String("A8:03:2A:20:C7:9B"):
+    //         return "backright";
+    //         break;
+    //     case String("94:3C:C6:39:CD:8B"):
+    //         return "frontleft";
+    //         break;
+    //     default:
+    //         return "error";
+    // }
+}
 
 // publishes a message on a topic
 void pub(const String& msg, const char* topic) {
     if(!client.connected()) {
         return;
     }
-    client.publish(("/" + String(CLIENT_NAME) + "/" + topic), msg);
+    client.publish(("/" + clientName() + "/" + topic), msg);
 }
 
 // publishes a message on to the debug topic
@@ -125,11 +162,11 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
         return false;
     }
 
-    if (!client.connect(CLIENT_NAME)) {
+    if (!client.connect(clientName().c_str())) {
         return false;
     }
-    client.subscribe("/" + String(CLIENT_NAME) + "/" + POWER_TOPIC);
-    client.subscribe("/" + String(CLIENT_NAME) + "/" + STEER_TOPIC);
+    client.subscribe("/" + clientName() + "/" + POWER_TOPIC);
+    client.subscribe("/" + clientName() + "/" + STEER_TOPIC);
     client.onMessage(callback);
     return true;
 }
