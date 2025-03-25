@@ -33,7 +33,7 @@ void setup() {
   pinSetup();
 
   // Ethernet networking setup
-  
+  // ETH.setHostname(CLIENT_NAME);
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
 
   while(!ETH.linkUp()) {
@@ -41,17 +41,20 @@ void setup() {
     delay(500);
   }
 
-  ota_setup();
+  
 
+  ota_setup();
+  
 
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
   mqttConnect(client, topicCb);
   timeout = ESTOP_TIMEOUT_MILLIS;
+  
 }
 
 void loop() {
-
+  // Serial.println("loop");
   if(!client.connected()) {
     timeout = 0;
     mqttConnect(client, topicCb);
@@ -66,8 +69,9 @@ void loop() {
     client.loop();
   }
 
+  
   timeout = max(0, timeout - LOOP_DELAY_MS);
   delay(LOOP_DELAY_MS);
-  // ElegantOTA.loop();
+  ElegantOTA.loop();
 }
 
