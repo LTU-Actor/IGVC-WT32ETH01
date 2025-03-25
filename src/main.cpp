@@ -1,4 +1,5 @@
 #include "WheelController.h"
+#include "OTASetup.h"
 
 /*
 94:3c:c6:39:cd:8b --- frontleft
@@ -50,20 +51,21 @@ void setup() {
   deviceSetup();
   
   // Ethernet networking setup
+  
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   while(!ETH.linkUp());
-
 
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
   while(!mqttConnect(client, topicCb));
   timeout = ESTOP_TIMEOUT_MILLIS;
+
+  ota_setup();
 }
 
 void loop() {
 
   if (timeout == 0) {
-    // analogWrite(BRAKE_PIN, 0);
     String brake(0);
     powerCb(brake);
     debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
@@ -81,6 +83,7 @@ void loop() {
 
   timeout = max(0, timeout - LOOP_DELAY_MS);
   delay(LOOP_DELAY_MS);
+  ElegantOTA.loop();
   
 }
 
