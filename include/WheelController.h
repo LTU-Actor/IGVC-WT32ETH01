@@ -9,7 +9,8 @@
 #include "CytronMotorDriver.h"
 #include "AS5600.h"
 #include "SimpleFOC.h"
-#include "PID_v1.h"
+
+#include "PIDControl.h"
 
 
 /*
@@ -37,11 +38,6 @@
 #define ENC_SCL_PIN 32 // steering encoder scl, CFG
 #define ENC_SDA_PIN 33 // steering encoder sda, 485_EN
 
-// PID values
-#define K_P 0
-#define K_I 0
-#define K_D 0
-
 // MQTT definitions
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
 #define POWER_TOPIC "power" // mqtt topic name for power
@@ -50,23 +46,19 @@
 #define ENC_DEBUG_TOPIC "encoder" // mqtt topic name for encoder debug info
 #define HALL_VEL_TOPIC "velocity" // wheel velocity
 #define HALL_ANGLE_TOPIC "angle" // wheel angle
+#define PID_TOPIC "wheelpid" // PID values, as JSON
 
 #define ESTOP_TIMEOUT_MILLIS 50     // Number of milliseconds to wait between messages to trigger an estop
 
 extern MQTTClient client(MESSAGE_BUFFERSIZE); // mqtt client
 extern int timeout = 0; // time in millis until controls time out
 
-double currentVelocity = 0.0; // current wheel velocity
-double outputVelocity = 0.0; // PID output wheel velocity
-double targetVelocity = 0.0; // wheel target velocity
-double currentAngle = 0.0; // current steer angle
-double outputAngle = 0.0; // PID steer output
-double targetAngle = 0.0; // steer angle target
+
 
 CytronMD steerController(PWM_DIR, STEER_PIN, STEER_DIR_PIN); // steering controller for cytron MC
 AS5600 as5600(&Wire); // encoder wire 0
 HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
-PID wheelController(&currentVelocity, &outputVelocity, &targetVelocity, K_P, K_I, K_D, DIRECT);
+
 
 String clientName() {
     String mac = ETH.macAddress();
@@ -86,26 +78,6 @@ String clientName() {
         return "testboard";
     }
     return "error";
-    
-    // switch (ETH.macAddress().c_str()) {
-    //     case String("A8:48:FA:08:59:57"):
-            
-    //         break;
-    //     case String("A8:48:FA:08:81:67"):
-    //         return "frontright";
-    //         break;
-    //     case String("A8:48:FA:08:57:F3"):
-    //         return "backleft";
-    //         break;
-    //     case String("A8:03:2A:20:C7:9B"):
-    //         return "backright";
-    //         break;
-    //     case String("94:3C:C6:39:CD:8B"):
-    //         return "frontleft";
-    //         break;
-    //     default:
-    //         return "error";
-    // }
 }
 
 // publishes a message on a topic
@@ -152,6 +124,9 @@ void topicCb(String& topic, String& msg) {
     else if(topic.endsWith(STEER_TOPIC)) {
         steerCb(msg);
     }
+    else if(topic.endsWith(PID_TOPIC)) {
+        setPIDTuning(msg);
+    }
     timeout = ESTOP_TIMEOUT_MILLIS;
 }
 
@@ -167,6 +142,7 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
     }
     client.subscribe("/" + clientName() + "/" + POWER_TOPIC);
     client.subscribe("/" + clientName() + "/" + STEER_TOPIC);
+    client.subscribe("/" + clientName() + "/" + PID_TOPIC);
     client.onMessage(callback);
     return true;
 }
@@ -198,8 +174,7 @@ void hallLoop() {
 
 // computes the PID for the wheel
 void wheelLoop() {
-    debug(String("Computed Velocity: ") + String(outputVelocity));
-    wheelController.Compute();
+    computePID();
     int pwm_output = (outputVelocity == 0) ? 0 : map(outputVelocity, 0, 1, 100, 150);
     ledcWrite(POWER_PWM_CHANNEL, pwm_output);
 }
