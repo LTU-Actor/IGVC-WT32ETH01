@@ -6,11 +6,10 @@
 #include <Arduino.h>
 #include <ETH.h>
 #include "MQTT.h"
-#include "CytronMotorDriver.h"
-#include "AS5600.h"
-#include "SimpleFOC.h"
+#include <ArduinoJson.h>
 
-#include "PIDControl.h"
+#include "Steering.h"
+#include "Wheel.h"
 
 
 /*
@@ -22,42 +21,26 @@
 
 */
 
-// Wheel motor controller pin definitions
-#define POWER_PIN  12   // wheel throttle power
-#define POWER_DIR_PIN 5   // wheel throttle direction
-#define HALL_A_PIN 4 // hall sensor A
-#define HALL_B_PIN 14 // hall sensor B
-#define HALL_C_PIN 15 // hall sensor C
-
-#define POWER_PWM_CHANNEL 0
-
-
-// Steering motor controller pin definitions
-#define STEER_PIN 2    // steering power
-#define STEER_DIR_PIN 17 // steering direction, TXD
-#define ENC_SCL_PIN 32 // steering encoder scl, CFG
-#define ENC_SDA_PIN 33 // steering encoder sda, 485_EN
-
 // MQTT definitions
 #define MESSAGE_BUFFERSIZE 1024   // Maximum MQTT message size, in bytes
-#define POWER_TOPIC "power" // mqtt topic name for power
-#define STEER_TOPIC "steer" // mqtt topic name for steering
-#define DEBUG_TOPIC "debug" // mqtt topic name for debug info
-#define ENC_DEBUG_TOPIC "encoder" // mqtt topic name for encoder debug info
+
+// input
+#define POWER_TOPIC "power" // mqtt topic name for power, wheel-specific
+#define STEER_TOPIC "steer" // mqtt topic name for steering, wheel-specific
+#define PID_TOPIC "pid" // PID values, as JSON, wheel-agnostic
+#define CALIB_STEER_TOPIC "calibrate" // Steering calibration topic, wheel-agnostic
+
+// output
+#define DEBUG_TOPIC "debug" //  debug info
+#define ENCODER_TOPIC "encoder" // encoder angle
 #define HALL_VEL_TOPIC "velocity" // wheel velocity
-#define HALL_ANGLE_TOPIC "angle" // wheel angle
-#define PID_TOPIC "wheelpid" // PID values, as JSON
+#define HALL_TOPIC "hall" // raw hall values
+
 
 #define ESTOP_TIMEOUT_MILLIS 50     // Number of milliseconds to wait between messages to trigger an estop
 
 extern MQTTClient client(MESSAGE_BUFFERSIZE); // mqtt client
 extern int timeout = 0; // time in millis until controls time out
-
-
-
-CytronMD steerController(PWM_DIR, STEER_PIN, STEER_DIR_PIN); // steering controller for cytron MC
-AS5600 as5600(&Wire); // encoder wire 0
-HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
 
 
 String clientName() {
@@ -108,12 +91,26 @@ void powerCb(String& msg) {
     }
 }
 
-// steer pin callback, sends PWM to steer motor
+// steering angle callback
 void steerCb(String& msg) {
-    // TODO: Use the Cytron package to arrive at steering angle with PID control
-    targetAngle = msg.toInt();
-    steerController.setSpeed(targetAngle);
-    
+    targetAngle = msg.toDouble();
+}
+
+// PID tuning callback
+void PIDCb(String& msg) {
+    JsonDocument js;
+    deserializeJson(js, msg);
+
+    wheel_p = js["linear"]["x"];
+    wheel_i = js["linear"]["y"];
+    wheel_d = js["linear"]["z"];
+
+    steer_p = js["angular"]["x"];
+    steer_i = js["angular"]["y"];
+    steer_d = js["angular"]["z"];
+
+    wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
+    steerPID.SetTunings(steer_p, steer_i, steer_d);
 }
 
 // general callback that sorts topics to their specific callbacks
@@ -125,9 +122,12 @@ void topicCb(String& topic, String& msg) {
         steerCb(msg);
     }
     else if(topic.endsWith(PID_TOPIC)) {
-        setPIDTuning(msg);
+        PIDCb(msg);
     }
-    timeout = ESTOP_TIMEOUT_MILLIS;
+    else if(topic.endsWith(CALIB_STEER_TOPIC)) {
+        setSteerCenter();
+    }
+    timeout = ESTOP_TIMEOUT_MILLIS; // reset timeout
 }
 
 
@@ -142,41 +142,16 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
     }
     client.subscribe("/" + clientName() + "/" + POWER_TOPIC);
     client.subscribe("/" + clientName() + "/" + STEER_TOPIC);
-    client.subscribe("/" + clientName() + "/" + PID_TOPIC);
+    client.subscribe("/" + String(PID_TOPIC));
+    client.subscribe("/" + String(CALIB_STEER_TOPIC));
     client.onMessage(callback);
     return true;
 }
 
-// reads the angle from the encoder
-void steerLoop() {
-    currentAngle = as5600.readAngle();
-    pub(String(currentAngle), ENC_DEBUG_TOPIC);
-}
-
-void doA(){hall.handleA();}
-void doB(){hall.handleB();}
-void doC(){hall.handleC();}
-
-// reads from the hall sensor
-void hallLoop() {
-    hall.update();
-    currentVelocity = hall.getVelocity();
-    double angle = hall.getAngle();
+void infoLoop() {
+    pub(String(currentAngle), ENCODER_TOPIC);
     pub(String(currentVelocity), HALL_VEL_TOPIC);
-    pub(String(angle), HALL_ANGLE_TOPIC);
-
-    int a = digitalRead(HALL_A_PIN);
-    int b = digitalRead(HALL_B_PIN);
-    int c = digitalRead(HALL_C_PIN);
-
-    pub(String("A: ") + String(a) + String("\nB: ") + String(b) + String("\nC: ") + String(c), "hall");
-}
-
-// computes the PID for the wheel
-void wheelLoop() {
-    computePID();
-    int pwm_output = (outputVelocity == 0) ? 0 : map(outputVelocity, 0, 1, 100, 150);
-    ledcWrite(POWER_PWM_CHANNEL, pwm_output);
+    pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
 
 

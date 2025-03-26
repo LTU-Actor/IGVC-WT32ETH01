@@ -1,11 +1,6 @@
 #include "WheelController.h"
 #include "OTASetup.h"
 
-/*
-94:3c:c6:39:cd:8b --- frontleft
-
-*/
-
 #define LOOP_DELAY_MS 10 // how long to delay after each loop
 
 // MQTT Setup
@@ -29,15 +24,16 @@ void deviceSetup() {
     hall.init();
     hall.enableInterrupts(doA, doB, doC);
 
-    wheelController.SetMode(AUTOMATIC);
+    wheelPID.SetMode(AUTOMATIC);
+    steerPID.SetMode(AUTOMATIC);
 
     _delay(1000);
    
 }
 
+// runs the updaters for the wheel and steering
 void deviceLoop() {
   steerLoop();
-  hallLoop();
   wheelLoop();
 }
 
@@ -51,7 +47,6 @@ void setup() {
   deviceSetup();
   
   // Ethernet networking setup
-  
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   while(!ETH.linkUp());
 
@@ -65,13 +60,14 @@ void setup() {
 
 void loop() {
 
-  if (timeout == 0) {
+
+  if (timeout == 0) { // check if message timeout has triggered
     String brake(0);
     powerCb(brake);
     debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
-  if(!client.connected()) {
+  if(!client.connected()) { // attempt to reconnect to MQTT
     timeout = 0;
     mqttConnect(client, topicCb);
   }
@@ -79,10 +75,11 @@ void loop() {
     client.loop();
   }
 
+  // run loops, update timeout
   deviceLoop();
+  infoLoop();
+  ElegantOTA.loop();
   timeout = max(0, timeout - LOOP_DELAY_MS);
   delay(LOOP_DELAY_MS);
-  ElegantOTA.loop();
-  
 }
 
