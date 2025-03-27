@@ -102,17 +102,17 @@ void PIDCb(String& msg) {
         JsonDocument js;
         deserializeJson(js, msg);
 
-        wheel_p = js["linear"]["x"];
-        wheel_i = js["linear"]["y"];
-        wheel_d = js["linear"]["z"];
+        wheel_p = js["linear"]["x"].as<float>();
+        wheel_i = js["linear"]["y"].as<float>();
+        wheel_d = js["linear"]["z"].as<float>();
 
-        steer_p = js["angular"]["x"];
-        steer_i = js["angular"]["y"];
-        steer_d = js["angular"]["z"];
+        steer_p = js["angular"]["x"].as<float>();
+        steer_i = js["angular"]["y"].as<float>();
+        steer_d = js["angular"]["z"].as<float>();
 
         wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
         steerPID.SetTunings(steer_p, steer_i, steer_d);
-        debug("Set PID values successfully!");
+        debug(String("P: ") + String(steer_p) + String(" I: ") + String(steer_i) + String(" D: ") + String(steer_d));
     }
     catch(std::exception e) {
         debug("Could not set PID values. Reason: " + String(e.what()));
@@ -128,7 +128,6 @@ void topicCb(String& topic, String& msg) {
         steerCb(msg);
     }
     else if(topic.endsWith(PID_TOPIC)) {
-        debug("here");
         PIDCb(msg);
     }
     else if(topic.endsWith(CALIB_STEER_TOPIC)) {
@@ -159,7 +158,6 @@ void infoLoop() {
     pub(String(currentAngle), ENCODER_TOPIC);
     pub(String(currentVelocity), HALL_VEL_TOPIC);
     pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
-    pub(String(outputAngle), "angleSpeed");
 }
 
 

@@ -15,12 +15,14 @@
 #define ENC_SCL_PIN 32 // steering encoder scl, CFG
 #define ENC_SDA_PIN 33 // steering encoder sda, 485_EN
 
+#define ANGLE_TOLERANCE 1
+
 float currentAngle = 0.0; // current steer angle
 float outputAngle = 0.0; // PID steer output
 float targetAngle = 0.0; // steer angle target
-float steer_p = 15; // kP steer value
-float steer_i = 0.8; // kI steer value
-float steer_d = 0.001; // kD steer value
+float steer_p = 8; // kP steer value
+float steer_i = 0; // kI steer value
+float steer_d = 0.2; // kD steer value
 
 float steeringCenter = 2048.0; // encoder value when the wheel is centered
 
@@ -37,10 +39,14 @@ float encToDegree(float encValue) {
 // reads from the encoder, computes PID, and sets the motor speed.
 void steerLoop() {
     currentAngle = encToDegree(as5600.readAngle());
-    steerPID.Compute();
-    if(abs(outputAngle) < 10) {
-        outputAngle = 0;
+    // currentAngle = as5600.getAngularSpeed();
+    if(abs(targetAngle - currentAngle) < ANGLE_TOLERANCE) {
+        targetAngle = currentAngle;
     }
+    steerPID.Compute();
+    // if(abs(outputAngle) < 10) {
+    //     outputAngle = 0;
+    // }
     steerController.setSpeed(outputAngle);
 }
 
