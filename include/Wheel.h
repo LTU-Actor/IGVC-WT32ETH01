@@ -4,7 +4,8 @@
 #define WHEEL_H__
 
 #include "SimpleFOC.h"
-#include "PID_v1.h"
+// #include "PID_v1.h"
+#include "QuickPID.h"
 
 // Wheel motor controller pin definitions
 #define POWER_PIN  12   // wheel throttle power
@@ -15,18 +16,18 @@
 
 #define POWER_PWM_CHANNEL 0
 
-double currentVelocity = 0.0; // current wheel velocity
-double outputVelocity = 0.0; // PID output wheel velocity
-double targetVelocity = 0.0; // wheel target velocity
-double wheel_p = 0; // kP wheel value
-double wheel_i = 0; // kI wheel value
-double wheel_d = 0; // kD wheel value
+float currentVelocity = 0.0; // current wheel velocity
+float outputVelocity = 0.0; // PID output wheel velocity
+float targetVelocity = 0.0; // wheel target velocity
+float wheel_p = 5; // kP wheel value
+float wheel_i = 1; // kI wheel value
+float wheel_d = 1; // kD wheel value
 int hallA = 0;
 int hallB = 0;
 int hallC = 0;
 
 
-PID wheelPID(&currentVelocity, &outputVelocity, &targetVelocity, wheel_p, wheel_i, wheel_d, DIRECT);
+QuickPID wheelPID(&currentVelocity, &outputVelocity, &targetVelocity);
 HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
 
 

@@ -24,8 +24,13 @@ void deviceSetup() {
     hall.init();
     hall.enableInterrupts(doA, doB, doC);
 
-    wheelPID.SetMode(AUTOMATIC);
-    steerPID.SetMode(AUTOMATIC);
+    wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
+    wheelPID.SetMode(1);
+    steerPID.SetTunings(steer_p, steer_i, steer_d);
+    steerPID.SetMode(1);
+
+    wheelPID.SetOutputLimits(-255, 255);
+    steerPID.SetOutputLimits(-100, 100);
 
     _delay(1000);
    
@@ -64,7 +69,7 @@ void loop() {
   if (timeout == 0) { // check if message timeout has triggered
     String brake(0);
     powerCb(brake);
-    debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
+    // debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
   if(!client.connected()) { // attempt to reconnect to MQTT
