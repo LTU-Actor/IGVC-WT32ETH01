@@ -55,12 +55,14 @@ void setup() {
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   while(!ETH.linkUp());
 
+  ota_setup();
+
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
   while(!mqttConnect(client, topicCb));
   timeout = ESTOP_TIMEOUT_MILLIS;
 
-  ota_setup();
+  
 }
 
 void loop() {
