@@ -17,6 +17,7 @@
 
 #define ANGLE_TOLERANCE 1
 
+float currEnc = 0.0;
 float currentAngle = 0.0; // current steer angle
 float outputAngle = 0.0; // PID steer output
 float targetAngle = 0.0; // steer angle target
@@ -24,7 +25,7 @@ float steer_p = 8; // kP steer value
 float steer_i = 0; // kI steer value
 float steer_d = 0.2; // kD steer value
 
-float steeringCenter = 2048.0; // encoder value when the wheel is centered
+float steeringCenter = 3145.0; // encoder value when the wheel is centered
 
 
 QuickPID steerPID(&currentAngle, &outputAngle, &targetAngle); // PID controller for steering
@@ -38,7 +39,8 @@ float encToDegree(float encValue) {
 
 // reads from the encoder, computes PID, and sets the motor speed.
 void steerLoop() {
-    currentAngle = encToDegree(as5600.readAngle());
+    currEnc = as5600.readAngle();
+    currentAngle = encToDegree(currEnc);
     // currentAngle = as5600.getAngularSpeed();
     if(abs(targetAngle - currentAngle) < ANGLE_TOLERANCE) {
         targetAngle = currentAngle;

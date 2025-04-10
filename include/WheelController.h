@@ -157,6 +157,7 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
 void infoLoop() {
     pub(String(currentAngle), ENCODER_TOPIC);
     pub(String(currentVelocity), HALL_VEL_TOPIC);
+    pub(String(currEnc), "encoder_raw");
     pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
 

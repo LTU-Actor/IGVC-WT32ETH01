@@ -10,18 +10,19 @@
 // Wheel motor controller pin definitions
 #define POWER_PIN  12   // wheel throttle power
 #define POWER_DIR_PIN 5   // wheel throttle direction
-#define HALL_A_PIN 4 // hall sensor A
-#define HALL_B_PIN 14 // hall sensor B
-#define HALL_C_PIN 15 // hall sensor C
+#define HALL_A_PIN 4 // hall sensor A, yellow
+#define HALL_B_PIN 14 // hall sensor B, green
+#define HALL_C_PIN 15 // hall sensor C, blue
 
 #define POWER_PWM_CHANNEL 0
+
 
 float currentVelocity = 0.0; // current wheel velocity
 float outputVelocity = 0.0; // PID output wheel velocity
 float targetVelocity = 0.0; // wheel target velocity
 float wheel_p = 5; // kP wheel value
-float wheel_i = 1; // kI wheel value
-float wheel_d = 1; // kD wheel value
+float wheel_i = 0; // kI wheel value
+float wheel_d = 0; // kD wheel value
 int hallA = 0;
 int hallB = 0;
 int hallC = 0;
@@ -45,8 +46,9 @@ void wheelLoop() {
     hallC = digitalRead(HALL_C_PIN);
 
     wheelPID.Compute();
-    int pwm_output = (outputVelocity == 0) ? 0 : map(outputVelocity, 0, 1, 100, 150);
-    ledcWrite(POWER_PWM_CHANNEL, pwm_output);
+    // int pwm_output = (outputVelocity <= 0) ? 0 : map(outputVelocity, 0, 1, 100, 150);
+    outputVelocity = max(0.0f, outputVelocity);
+    ledcWrite(POWER_PWM_CHANNEL, targetVelocity);
 }
 
 
