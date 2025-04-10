@@ -15,9 +15,11 @@
 #define ENC_SCL_PIN 32 // steering encoder scl, CFG
 #define ENC_SDA_PIN 33 // steering encoder sda, 485_EN
 
-#define ANGLE_TOLERANCE 1
+#define ENC_TICKS 4096
+#define PI 3.1415
+#define TICK_TOLERANCE 25
 
-float currEnc = 0.0;
+float encRaw = 0.0;
 float currentAngle = 0.0; // current steer angle
 float outputAngle = 0.0; // PID steer output
 float targetAngle = 0.0; // steer angle target
@@ -37,18 +39,34 @@ float encToDegree(float encValue) {
     return (encValue - steeringCenter) * (180.0 / 2048.0);
 }
 
+// converts encoder values (0 - 4096) to radians (-pi - pi).
+float encToRad(float encValue) {
+    return (encValue - steeringCenter) * (PI / 2048.0);
+}
+
+// converts radians (-pi - pi) to encoder values (0 - 4096).
+float radToEnc(float radValue) {
+    return radValue * (2048.0 / PI) + steeringCenter;
+}
+
 // reads from the encoder, computes PID, and sets the motor speed.
 void steerLoop() {
-    currEnc = as5600.readAngle();
-    currentAngle = encToDegree(currEnc);
-    // currentAngle = as5600.getAngularSpeed();
-    if(abs(targetAngle - currentAngle) < ANGLE_TOLERANCE) {
-        targetAngle = currentAngle;
+    encRaw = as5600.readAngle();
+    currentAngle = encRaw;
+
+    if(currentAngle > 0.75 * ENC_TICKS && targetAngle < 0.25 * ENC_TICKS) {
+        currentAngle -= ENC_TICKS;
     }
+    if(currentAngle < 0.25 * ENC_TICKS && targetAngle > 0.75 * ENC_TICKS) {
+        currentAngle += ENC_TICKS;
+    }
+    
+    if(abs(targetAngle - currentAngle) < TICK_TOLERANCE) {
+        steerController.setSpeed(0);
+        return;
+    }
+    
     steerPID.Compute();
-    // if(abs(outputAngle) < 10) {
-    //     outputAngle = 0;
-    // }
     steerController.setSpeed(outputAngle);
 }
 

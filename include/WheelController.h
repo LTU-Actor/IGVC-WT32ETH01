@@ -93,7 +93,7 @@ void powerCb(String& msg) {
 
 // steering angle callback
 void steerCb(String& msg) {
-    targetAngle = msg.toDouble();
+    targetAngle = radToEnc(msg.toFloat());
 }
 
 // PID tuning callback
@@ -155,9 +155,9 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
 }
 
 void infoLoop() {
-    pub(String(currentAngle), ENCODER_TOPIC);
+    pub(String(encToRad(encRaw)), ENCODER_TOPIC);
+    pub(String(encRaw), "encoder_raw");
     pub(String(currentVelocity), HALL_VEL_TOPIC);
-    pub(String(currEnc), "encoder_raw");
     pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
 
