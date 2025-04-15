@@ -55,6 +55,7 @@ void setup() {
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   while(!ETH.linkUp());
 
+  clientSetup();
   ota_setup();
 
   // MQTT Connection
@@ -71,7 +72,7 @@ void loop() {
   if (timeout == 0) { // check if message timeout has triggered
     String brake(0);
     powerCb(brake);
-    // debug("estop activated, timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
+    debug("estop activated on " + String(clientName) + ", timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
   if(!client.connected()) { // attempt to reconnect to MQTT

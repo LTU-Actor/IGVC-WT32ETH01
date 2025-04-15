@@ -15,28 +15,37 @@
 #define ENC_SCL_PIN 32 // steering encoder scl, CFG
 #define ENC_SDA_PIN 33 // steering encoder sda, 485_EN
 
-#define ENC_TICKS 4096
-#define PI 3.1415
-#define TICK_TOLERANCE 25
+#define ENC_TICKS 4096 // total number of encoder ticks
+#define ENC_RANGE 1000 // steering range on either side of the steering center
+#define TICK_TOLERANCE 25 // tolerance between current and target angle to stop the wheel
+
+float steeringCenter = 1097.0; // encoder value when the wheel is centered
+float minTick = steeringCenter - ENC_RANGE;
+float maxTick = steeringCenter + ENC_RANGE;
 
 float encRaw = 0.0;
 float currentAngle = 0.0; // current steer angle
 float outputAngle = 0.0; // PID steer output
-float targetAngle = 0.0; // steer angle target
-float steer_p = 8; // kP steer value
+float targetAngle = steeringCenter; // steer angle target
+float steer_p = 1; // kP steer value
 float steer_i = 0; // kI steer value
-float steer_d = 0.2; // kD steer value
+float steer_d = 0.005; // kD steer value
 
-float steeringCenter = 3145.0; // encoder value when the wheel is centered
+
 
 
 QuickPID steerPID(&currentAngle, &outputAngle, &targetAngle); // PID controller for steering
 CytronMD steerController(PWM_DIR, STEER_PIN, STEER_DIR_PIN); // steering controller for cytron MC
 AS5600 as5600(&Wire); // steering encoder
 
-// converts encoder values (0-4096) to degrees.
-float encToDegree(float encValue) {
-    return (encValue - steeringCenter) * (180.0 / 2048.0);
+// converts degrees to radians.
+float degreeToRad(float degree) {
+    return degree * (PI / 180.0);
+}
+
+// converts radians to degrees.
+float radToDegree(float radian) {
+    return radian * (180.0 / PI);
 }
 
 // converts encoder values (0 - 4096) to radians (-pi - pi).
@@ -49,22 +58,26 @@ float radToEnc(float radValue) {
     return radValue * (2048.0 / PI) + steeringCenter;
 }
 
+float filterEnc(float encValue) {
+    return min(maxTick, max(minTick, encValue));
+}
+
 // reads from the encoder, computes PID, and sets the motor speed.
 void steerLoop() {
-    encRaw = as5600.readAngle();
+    encRaw = as5600.readAngle() - (ENC_TICKS / 2); // change to (-2048,2048)
     currentAngle = encRaw;
 
-    if(currentAngle > 0.75 * ENC_TICKS && targetAngle < 0.25 * ENC_TICKS) {
+    if(currentAngle > 1024 && targetAngle < -1024) {
         currentAngle -= ENC_TICKS;
     }
-    if(currentAngle < 0.25 * ENC_TICKS && targetAngle > 0.75 * ENC_TICKS) {
+    if(currentAngle < -1024 && targetAngle > 1024) {
         currentAngle += ENC_TICKS;
     }
     
-    if(abs(targetAngle - currentAngle) < TICK_TOLERANCE) {
-        steerController.setSpeed(0);
-        return;
-    }
+    // if(abs(targetAngle - currentAngle) < TICK_TOLERANCE) {
+    //     steerController.setSpeed(0);
+    //     return;
+    // }
     
     steerPID.Compute();
     steerController.setSpeed(outputAngle);

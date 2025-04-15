@@ -39,28 +39,35 @@
 
 #define ESTOP_TIMEOUT_MILLIS 50     // Number of milliseconds to wait between messages to trigger an estop
 
-extern MQTTClient client(MESSAGE_BUFFERSIZE); // mqtt client
-extern int timeout = 0; // time in millis until controls time out
+MQTTClient client(MESSAGE_BUFFERSIZE); // mqtt client
+int timeout = 0; // time in millis until controls time out
+String clientName;
 
 
-String clientName() {
+void clientSetup() {
     String mac = ETH.macAddress();
     if (mac == String("A8:48:FA:08:59:57")) {
-        return "frontleft";
+        clientName =  "frontleft";
+        steeringCenter = 1269.0;
     }
-    if (mac == String("A8:48:FA:08:81:67")) {
-        return "frontright";
+    else if (mac == String("A8:48:FA:08:81:67")) {
+        clientName = "frontright";
+        steeringCenter = 1097.0;
     }
-    if (mac == String("A8:48:FA:08:57:F3")) {
-        return "backleft";
+    else if (mac == String("A8:48:FA:08:57:F3")) {
+        clientName = "backleft";
+        steeringCenter = -1266.0;
     }
-    if (mac == String("A8:03:2A:20:C7:9B")) {
-        return "backright";
+    else if (mac == String("A8:03:2A:20:C7:9B")) {
+        clientName = "backright";
+        steeringCenter = -529.0;
     }
-    if (mac == String("94:3C:C6:39:CD:8B")) {
-        return "testboard";
+    else if (mac == String("94:3C:C6:39:CD:8B")) {
+        clientName = "testboard";
     }
-    return "error";
+    else {
+        clientName = "error";
+    }
 }
 
 // publishes a message on a topic
@@ -68,7 +75,7 @@ void pub(const String& msg, const char* topic) {
     if(!client.connected()) {
         return;
     }
-    client.publish(("/" + clientName() + "/" + topic), msg);
+    client.publish(("/" + clientName + "/" + topic), msg);
 }
 
 // publishes a message on to the debug topic
@@ -93,7 +100,7 @@ void powerCb(String& msg) {
 
 // steering angle callback
 void steerCb(String& msg) {
-    targetAngle = radToEnc(msg.toFloat());
+    targetAngle = filterEnc((int) radToEnc(msg.toFloat()));
 }
 
 // PID tuning callback
@@ -143,11 +150,11 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
         return false;
     }
 
-    if (!client.connect(clientName().c_str())) {
+    if (!client.connect(clientName.c_str())) {
         return false;
     }
-    client.subscribe("/" + clientName() + "/" + POWER_TOPIC);
-    client.subscribe("/" + clientName() + "/" + STEER_TOPIC);
+    client.subscribe("/" + clientName + "/" + POWER_TOPIC);
+    client.subscribe("/" + clientName + "/" + STEER_TOPIC);
     client.subscribe("/" + String(PID_TOPIC));
     client.subscribe("/" + String(CALIB_STEER_TOPIC));
     client.onMessage(callback);
@@ -157,6 +164,7 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
 void infoLoop() {
     pub(String(encToRad(encRaw)), ENCODER_TOPIC);
     pub(String(encRaw), "encoder_raw");
+    pub(String(radToDegree(encToRad(encRaw))), "encoder_deg");
     pub(String(currentVelocity), HALL_VEL_TOPIC);
     pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
