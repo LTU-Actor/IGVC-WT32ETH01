@@ -27,6 +27,8 @@ int hallA = 0;
 int hallB = 0;
 int hallC = 0;
 
+bool wheelStop = false;
+
 
 QuickPID wheelPID(&currentVelocity, &outputVelocity, &targetVelocity);
 HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
@@ -45,10 +47,14 @@ void wheelLoop() {
     hallB = digitalRead(HALL_B_PIN);
     hallC = digitalRead(HALL_C_PIN);
 
-    wheelPID.Compute();
-    // int pwm_output = (outputVelocity <= 0) ? 0 : map(outputVelocity, 0, 1, 100, 150);
-    outputVelocity = max(0.0f, outputVelocity);
-    ledcWrite(POWER_PWM_CHANNEL, targetVelocity);
+    if(!wheelStop) {
+        wheelPID.Compute();
+        outputVelocity = max(0.0f, outputVelocity);
+        ledcWrite(POWER_PWM_CHANNEL, targetVelocity);
+    }
+    else {
+        ledcWrite(POWER_PWM_CHANNEL, 0);
+    }
 }
 
 

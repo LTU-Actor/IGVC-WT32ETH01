@@ -31,6 +31,8 @@ float steer_p = 1; // kP steer value
 float steer_i = 0; // kI steer value
 float steer_d = 0.005; // kD steer value
 
+bool steerStop = false;
+
 
 
 
@@ -74,13 +76,13 @@ void steerLoop() {
         currentAngle += ENC_TICKS;
     }
     
-    // if(abs(targetAngle - currentAngle) < TICK_TOLERANCE) {
-    //     steerController.setSpeed(0);
-    //     return;
-    // }
-    
-    steerPID.Compute();
-    steerController.setSpeed(outputAngle);
+    if(!steerStop) {
+        steerPID.Compute();
+        steerController.setSpeed(outputAngle);
+    }
+    else {
+        steerController.setSpeed(0);
+    }
 }
 
 // sets the center of steering to the current angle.

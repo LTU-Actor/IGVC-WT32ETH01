@@ -68,19 +68,17 @@ void setup() {
 
 void loop() {
 
-
-  if (timeout == 0) { // check if message timeout has triggered
-    String brake(0);
-    powerCb(brake);
-    debug("estop activated on " + String(clientName) + ", timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
-  }
-
   if(!client.connected()) { // attempt to reconnect to MQTT
     timeout = 0;
     mqttConnect(client, topicCb);
   }
   else {
     client.loop();
+  }
+
+  if (timeout == 0) { // check if message timeout has triggered
+    triggerStop();
+    debug("estop activated on " + String(clientName) + ", timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
   // run loops, update timeout

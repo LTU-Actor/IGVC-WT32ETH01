@@ -83,8 +83,6 @@ void debug(const String& msg) {
     pub(msg, DEBUG_TOPIC);
 }
 
-
-
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
     // TODO: Use hall feedback to do smooth acceleration and speed control
@@ -169,6 +167,15 @@ void infoLoop() {
     pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
 
+void triggerStop() {
+    wheelStop = true;
+    steerStop = true;
+}
+
+void releaseStop() {
+    wheelStop = false;
+    steerStop = false;
+}
 
 
 #endif
