@@ -19,7 +19,7 @@
 #define ENC_RANGE 1000 // steering range on either side of the steering center
 #define TICK_TOLERANCE 25 // tolerance between current and target angle to stop the wheel
 
-extern float steeringCenter = 1097.0; // encoder value when the wheel is centered
+float steeringCenter = 1097.0; // encoder value when the wheel is centered
 float minTick = steeringCenter - ENC_RANGE;
 float maxTick = steeringCenter + ENC_RANGE;
 

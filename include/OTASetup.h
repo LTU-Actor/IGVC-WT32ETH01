@@ -4,7 +4,7 @@
 #include <AsyncTCP.h>
 #include <ElegantOTA.h>
 
-extern AsyncWebServer server(80);
+AsyncWebServer server(80);
 unsigned long ota_progress_millis = 0;
 
 void onOTAStart() {
