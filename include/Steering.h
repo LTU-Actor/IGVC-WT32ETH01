@@ -19,7 +19,7 @@
 #define ENC_RANGE 1000 // steering range on either side of the steering center
 #define TICK_TOLERANCE 25 // tolerance between current and target angle to stop the wheel
 
-float steeringCenter = 1097.0; // encoder value when the wheel is centered
+extern float steeringCenter = 1097.0; // encoder value when the wheel is centered
 float minTick = steeringCenter - ENC_RANGE;
 float maxTick = steeringCenter + ENC_RANGE;
 
@@ -86,8 +86,18 @@ void steerLoop() {
 // sets the center of steering to the current angle.
 void setSteerCenter() {
     steeringCenter = as5600.readAngle();
+    targetAngle = steeringCenter;
+    minTick = steeringCenter - ENC_RANGE;
+    maxTick = steeringCenter + ENC_RANGE;
 }
 
+// sets the center of steering to the current angle.
+void setSteerCenterValue(int tick) {
+    steeringCenter = tick;
+    targetAngle = steeringCenter;
+    minTick = steeringCenter - ENC_RANGE;
+    maxTick = steeringCenter + ENC_RANGE;
+}
 
 
 #endif

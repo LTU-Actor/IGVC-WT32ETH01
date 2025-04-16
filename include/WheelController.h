@@ -48,19 +48,19 @@ void clientSetup() {
     String mac = ETH.macAddress();
     if (mac == String("A8:48:FA:08:59:57")) {
         clientName =  "frontleft";
-        steeringCenter = 1269.0;
+        setSteerCenterValue(1269.0);
     }
     else if (mac == String("A8:48:FA:08:81:67")) {
         clientName = "frontright";
-        steeringCenter = 1097.0;
+        setSteerCenterValue(1097.0);
     }
-    else if (mac == String("A8:48:FA:08:57:F3")) {
+    else if (mac == String("A8:48:FA:08:57:F3")) { // a8:48:fa:08:57:f3, 192.168.0.7
         clientName = "backleft";
-        steeringCenter = -1266.0;
+        setSteerCenterValue(-1266.0);
     }
-    else if (mac == String("A8:03:2A:20:C7:9B")) {
+    else if (mac == String("A8:03:2A:20:C7:9B")) { // a8:03:2a:20:c7:9b, 192.168.0.8
         clientName = "backright";
-        steeringCenter = -529.0;
+        setSteerCenterValue(557.0);
     }
     else if (mac == String("94:3C:C6:39:CD:8B")) {
         clientName = "testboard";
