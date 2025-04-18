@@ -24,12 +24,12 @@ void deviceSetup() {
     hall.init();
     hall.enableInterrupts(doA, doB, doC);
 
-    wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
-    wheelPID.SetMode(1);
+    // wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
+    // wheelPID.SetMode(1);
     steerPID.SetTunings(steer_p, steer_i, steer_d);
     steerPID.SetMode(1);
 
-    wheelPID.SetOutputLimits(-255, 255);
+    // wheelPID.SetOutputLimits(-255, 255);
     steerPID.SetOutputLimits(-100, 100);
 
     _delay(1000);

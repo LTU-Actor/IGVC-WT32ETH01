@@ -48,19 +48,19 @@ void clientSetup() {
     String mac = ETH.macAddress();
     if (mac == String("A8:48:FA:08:59:57")) {
         clientName =  "frontleft";
-        setSteerCenterValue(1269.0);
+        setSteerCenterValue(2309.0);
     }
     else if (mac == String("A8:48:FA:08:81:67")) {
         clientName = "frontright";
-        setSteerCenterValue(1097.0);
+        setSteerCenterValue(2125.0);
     }
     else if (mac == String("A8:48:FA:08:57:F3")) { // a8:48:fa:08:57:f3, 192.168.0.7
         clientName = "backleft";
-        setSteerCenterValue(-1266.0);
+        setSteerCenterValue(1822.0);
     }
     else if (mac == String("A8:03:2A:20:C7:9B")) { // a8:03:2a:20:c7:9b, 192.168.0.8
         clientName = "backright";
-        setSteerCenterValue(557.0);
+        setSteerCenterValue(2584.0);
     }
     else if (mac == String("94:3C:C6:39:CD:8B")) {
         clientName = "testboard";
@@ -83,10 +83,20 @@ void debug(const String& msg) {
     pub(msg, DEBUG_TOPIC);
 }
 
+void triggerStop() {
+    wheelStop = true;
+    steerStop = true;
+}
+
+void releaseStop() {
+    wheelStop = false;
+    steerStop = false;
+}
+
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
     // TODO: Use hall feedback to do smooth acceleration and speed control
-    targetVelocity = msg.toDouble();
+    targetVelocity = max(min(msg.toFloat(), max_ang_vel), -1 * max_ang_vel);
     if(targetVelocity >= 0) {
         digitalWrite(POWER_DIR_PIN, LOW);
     }
@@ -115,7 +125,6 @@ void PIDCb(String& msg) {
         steer_i = js["angular"]["y"].as<float>();
         steer_d = js["angular"]["z"].as<float>();
 
-        wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
         steerPID.SetTunings(steer_p, steer_i, steer_d);
         debug(String("P: ") + String(steer_p) + String(" I: ") + String(steer_i) + String(" D: ") + String(steer_d));
     }
@@ -139,6 +148,7 @@ void topicCb(String& topic, String& msg) {
         setSteerCenter();
     }
     timeout = ESTOP_TIMEOUT_MILLIS; // reset timeout
+    releaseStop();
 }
 
 
@@ -163,19 +173,12 @@ void infoLoop() {
     pub(String(encToRad(encRaw)), ENCODER_TOPIC);
     pub(String(encRaw), "encoder_raw");
     pub(String(radToDegree(encToRad(encRaw))), "encoder_deg");
+    pub(String(outputVelocity), "power_output");
     pub(String(currentVelocity), HALL_VEL_TOPIC);
     pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
 
-void triggerStop() {
-    wheelStop = true;
-    steerStop = true;
-}
 
-void releaseStop() {
-    wheelStop = false;
-    steerStop = false;
-}
 
 
 #endif

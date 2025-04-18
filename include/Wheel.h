@@ -4,8 +4,6 @@
 #define WHEEL_H__
 
 #include "SimpleFOC.h"
-// #include "PID_v1.h"
-#include "QuickPID.h"
 
 // Wheel motor controller pin definitions
 #define POWER_PIN  12   // wheel throttle power
@@ -16,11 +14,13 @@
 
 #define POWER_PWM_CHANNEL 0
 
+#define MAX_PWM 150
 
+const float max_ang_vel = 2.25;
 float currentVelocity = 0.0; // current wheel velocity
 float outputVelocity = 0.0; // PID output wheel velocity
 float targetVelocity = 0.0; // wheel target velocity
-float wheel_p = 5; // kP wheel value
+float wheel_p = 1; // kP wheel value
 float wheel_i = 0; // kI wheel value
 float wheel_d = 0; // kD wheel value
 int hallA = 0;
@@ -29,8 +29,6 @@ int hallC = 0;
 
 bool wheelStop = false;
 
-
-QuickPID wheelPID(&currentVelocity, &outputVelocity, &targetVelocity);
 HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
 
 
@@ -48,9 +46,14 @@ void wheelLoop() {
     hallC = digitalRead(HALL_C_PIN);
 
     if(!wheelStop) {
-        wheelPID.Compute();
-        outputVelocity = max(0.0f, outputVelocity);
-        ledcWrite(POWER_PWM_CHANNEL, targetVelocity);
+        // wheelPID.Compute();
+        if(targetVelocity == 0) {
+            outputVelocity = 0;
+        }
+        else {
+            outputVelocity = map(targetVelocity, 0, 2.25, 100, MAX_PWM);
+        }
+        ledcWrite(POWER_PWM_CHANNEL, outputVelocity);
     }
     else {
         ledcWrite(POWER_PWM_CHANNEL, 0);

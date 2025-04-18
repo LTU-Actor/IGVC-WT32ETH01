@@ -16,7 +16,7 @@
 #define ENC_SDA_PIN 33 // steering encoder sda, 485_EN
 
 #define ENC_TICKS 4096 // total number of encoder ticks
-#define ENC_RANGE 1000 // steering range on either side of the steering center
+#define ENC_RANGE 1200 // steering range on either side of the steering center
 #define TICK_TOLERANCE 25 // tolerance between current and target angle to stop the wheel
 
 float steeringCenter = 1097.0; // encoder value when the wheel is centered
@@ -66,15 +66,15 @@ float filterEnc(float encValue) {
 
 // reads from the encoder, computes PID, and sets the motor speed.
 void steerLoop() {
-    encRaw = as5600.readAngle() - (ENC_TICKS / 2); // change to (-2048,2048)
+    encRaw = as5600.readAngle(); // change to (-2048,2048)
     currentAngle = encRaw;
 
-    if(currentAngle > 1024 && targetAngle < -1024) {
-        currentAngle -= ENC_TICKS;
-    }
-    if(currentAngle < -1024 && targetAngle > 1024) {
-        currentAngle += ENC_TICKS;
-    }
+    // if(currentAngle > 1024 && targetAngle < -1024) {
+    //     currentAngle -= ENC_TICKS;
+    // }
+    // if(currentAngle < -1024 && targetAngle > 1024) {
+    //     currentAngle += ENC_TICKS;
+    // }
     
     if(!steerStop) {
         steerPID.Compute();
