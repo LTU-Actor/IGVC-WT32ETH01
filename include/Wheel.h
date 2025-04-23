@@ -16,7 +16,7 @@
 
 #define MAX_PWM 150
 
-const float max_ang_vel = 2.25;
+const float max_ang_vel = 8.5;
 float currentVelocity = 0.0; // current wheel velocity
 float outputVelocity = 0.0; // PID output wheel velocity
 float targetVelocity = 0.0; // wheel target velocity
@@ -51,7 +51,8 @@ void wheelLoop() {
             outputVelocity = 0;
         }
         else {
-            outputVelocity = map(targetVelocity, 0, 2.25, 100, MAX_PWM);
+            // outputVelocity = map(targetVelocity, 0, 2.25, 100, MAX_PWM);
+            outputVelocity = targetVelocity;
         }
         ledcWrite(POWER_PWM_CHANNEL, outputVelocity);
     }

@@ -82,6 +82,7 @@ void steerLoop() {
     }
     else {
         steerController.setSpeed(0);
+        targetAngle = currentAngle;
     }
 }
 

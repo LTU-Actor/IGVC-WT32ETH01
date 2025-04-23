@@ -42,7 +42,7 @@
 MQTTClient client(MESSAGE_BUFFERSIZE); // mqtt client
 int timeout = 0; // time in millis until controls time out
 String clientName;
-
+bool in_reverse = false;
 
 void clientSetup() {
     String mac = ETH.macAddress();
@@ -96,14 +96,28 @@ void releaseStop() {
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
     // TODO: Use hall feedback to do smooth acceleration and speed control
-    targetVelocity = max(min(msg.toFloat(), max_ang_vel), -1 * max_ang_vel);
-    if(targetVelocity >= 0) {
-        digitalWrite(POWER_DIR_PIN, LOW);
-    }
-    else {
+    // targetVelocity = max(min(msg.toFloat(), max_ang_vel), -1 * max_ang_vel);
+    float vel = msg.toFloat();
+    // targetVelocity = msg.toFloat();
+    if(vel > 0) {
         digitalWrite(POWER_DIR_PIN, HIGH);
-        targetVelocity *= -1;
+        in_reverse = false;
     }
+    else if (vel < 0) {
+        
+        vel *= -1;
+        if(!in_reverse){
+            if(currentVelocity != 0.0f) {
+                targetVelocity = 0;
+                return;
+            }
+            digitalWrite(POWER_DIR_PIN, LOW);
+            in_reverse = true;
+            delay(25);
+        }
+            
+    }
+    targetVelocity = vel;
 }
 
 // steering angle callback
