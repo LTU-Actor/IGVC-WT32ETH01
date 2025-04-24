@@ -29,6 +29,7 @@
 #define STEER_TOPIC "steer" // mqtt topic name for steering, wheel-specific
 #define PID_TOPIC "pid" // PID values, as JSON, wheel-agnostic
 #define CALIB_STEER_TOPIC "calibrate" // Steering calibration topic, wheel-agnostic
+#define DIRECTION_TOPIC "reverse"  // wheel direction topic, wheel-specific
 
 // output
 #define DEBUG_TOPIC "debug" //  debug info
@@ -95,29 +96,31 @@ void releaseStop() {
 
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
-    // TODO: Use hall feedback to do smooth acceleration and speed control
-    // targetVelocity = max(min(msg.toFloat(), max_ang_vel), -1 * max_ang_vel);
-    float vel = msg.toFloat();
-    // targetVelocity = msg.toFloat();
-    if(vel > 0) {
-        digitalWrite(POWER_DIR_PIN, HIGH);
-        in_reverse = false;
-    }
-    else if (vel < 0) {
-        
-        vel *= -1;
-        if(!in_reverse){
-            if(currentVelocity != 0.0f) {
-                targetVelocity = 0;
-                return;
-            }
+    targetVelocity = abs(msg.toFloat());
+}
+
+void directionCb(String& msg) {
+    int dir = msg.toInt();
+    if(in_reverse && dir == 0) {
+        if(currentVelocity != 0) {
+            targetVelocity = 0;
+        }
+        else {
             digitalWrite(POWER_DIR_PIN, LOW);
             in_reverse = true;
-            delay(25);
+            delay(1000);
         }
-            
     }
-    targetVelocity = vel;
+    else if(!in_reverse && dir == 1) {
+        if(currentVelocity != 0) {
+            targetVelocity = 0;
+        }
+        else {
+            digitalWrite(POWER_DIR_PIN, HIGH);
+            in_reverse = false;
+            delay(1000);
+        }
+    }
 }
 
 // steering angle callback
@@ -161,6 +164,9 @@ void topicCb(String& topic, String& msg) {
     else if(topic.endsWith(CALIB_STEER_TOPIC)) {
         setSteerCenter();
     }
+    else if(topic.endsWith(DIRECTION_TOPIC)) {
+        directionCb(msg);
+    }
     timeout = ESTOP_TIMEOUT_MILLIS; // reset timeout
     releaseStop();
 }
@@ -177,6 +183,7 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
     }
     client.subscribe("/" + clientName + "/" + POWER_TOPIC);
     client.subscribe("/" + clientName + "/" + STEER_TOPIC);
+    client.subscribe("/" + clientName + "/" + DIRECTION_TOPIC);
     client.subscribe("/" + String(PID_TOPIC));
     client.subscribe("/" + String(CALIB_STEER_TOPIC));
     client.onMessage(callback);
