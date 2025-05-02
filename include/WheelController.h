@@ -29,7 +29,7 @@
 #define STEER_TOPIC "steer" // mqtt topic name for steering, wheel-specific
 #define PID_TOPIC "pid" // PID values, as JSON, wheel-agnostic
 #define CALIB_STEER_TOPIC "calibrate" // Steering calibration topic, wheel-agnostic
-#define DIRECTION_TOPIC "reverse"  // wheel direction topic, wheel-specific
+#define DIRECTION_TOPIC "direction"  // wheel direction topic, wheel-specific
 
 // output
 #define DEBUG_TOPIC "debug" //  debug info
@@ -107,7 +107,7 @@ void directionCb(String& msg) {
         }
         else {
             digitalWrite(POWER_DIR_PIN, LOW);
-            in_reverse = true;
+            in_reverse = false;
             delay(1000);
         }
     }
@@ -117,7 +117,7 @@ void directionCb(String& msg) {
         }
         else {
             digitalWrite(POWER_DIR_PIN, HIGH);
-            in_reverse = false;
+            in_reverse = true;
             delay(1000);
         }
     }
