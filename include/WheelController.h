@@ -47,15 +47,15 @@ bool in_reverse = false;
 
 void clientSetup() {
     String mac = ETH.macAddress();
-    if (mac == String("A8:48:FA:08:59:57")) {
+    if (mac == String("A8:48:FA:08:57:F3")) {
         clientName =  "frontleft";
-        setSteerCenterValue(2309.0);
+        setSteerCenterValue(1561.0);
     }
     else if (mac == String("A8:48:FA:08:81:67")) {
         clientName = "frontright";
         setSteerCenterValue(2125.0);
     }
-    else if (mac == String("A8:48:FA:08:57:F3")) { // a8:48:fa:08:57:f3, 192.168.0.7
+    else if (mac == String("A8:48:FA:08:59:57")) { // a8:48:fa:08:57:f3, 192.168.0.7
         clientName = "backleft";
         setSteerCenterValue(1822.0);
     }
@@ -108,7 +108,8 @@ void directionCb(String& msg) {
         else {
             digitalWrite(POWER_DIR_PIN, LOW);
             in_reverse = false;
-            delay(1000);
+            // delay(1000);
+            wheelDelay = 100;
         }
     }
     else if(!in_reverse && dir == 1) {
@@ -118,7 +119,8 @@ void directionCb(String& msg) {
         else {
             digitalWrite(POWER_DIR_PIN, HIGH);
             in_reverse = true;
-            delay(1000);
+            // delay(1000);
+            wheelDelay = 100;
         }
     }
 }
@@ -143,7 +145,6 @@ void PIDCb(String& msg) {
         steer_d = js["angular"]["z"].as<float>();
 
         steerPID.SetTunings(steer_p, steer_i, steer_d);
-        debug(String("P: ") + String(steer_p) + String(" I: ") + String(steer_i) + String(" D: ") + String(steer_d));
     }
     catch(std::exception e) {
         debug("Could not set PID values. Reason: " + String(e.what()));
@@ -191,12 +192,15 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
 }
 
 void infoLoop() {
+    debug(String("\nName: ") + clientName +
+          String("\nWheel: ") + wheelCode +
+          String("\nSteer: ") + steerCode
+    );
     pub(String(encToRad(encRaw)), ENCODER_TOPIC);
-    pub(String(encRaw), "encoder_raw");
+    pub(String(encRaw) + String(", ") + String(lastSteerError), "encoder_raw");
     pub(String(radToDegree(encToRad(encRaw))), "encoder_deg");
     pub(String(outputVelocity), "power_output");
     pub(String(currentVelocity), HALL_VEL_TOPIC);
-    pub(String("A: ") + String(hallA) + String("\nB: ") + String(hallB) + String("\nC: ") + String(hallC), HALL_TOPIC);
 }
 
 

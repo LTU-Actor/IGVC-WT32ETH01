@@ -27,7 +27,10 @@ int hallA = 0;
 int hallB = 0;
 int hallC = 0;
 
+int wheelDelay = 0;
+
 bool wheelStop = false;
+String wheelCode = "";
 
 HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
 
@@ -41,9 +44,11 @@ void doC(){hall.handleC();}
 void wheelLoop() {
     hall.update();
     currentVelocity = hall.getVelocity();
-    hallA = digitalRead(HALL_A_PIN);
-    hallB = digitalRead(HALL_B_PIN);
-    hallC = digitalRead(HALL_C_PIN);
+
+    if(wheelDelay > 0) {
+        wheelStop = true;
+        wheelDelay -= 10;
+    }
 
     if(!wheelStop) {
         // wheelPID.Compute();
@@ -55,9 +60,11 @@ void wheelLoop() {
             outputVelocity = targetVelocity;
         }
         ledcWrite(POWER_PWM_CHANNEL, outputVelocity);
+        wheelCode = String("OK");
     }
     else {
         ledcWrite(POWER_PWM_CHANNEL, 0);
+        wheelCode = String("STOPPED");
     }
 }
 

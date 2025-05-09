@@ -53,6 +53,7 @@ void setup() {
   
   // Ethernet networking setup
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
+  ETH.setHostname(clientName.c_str());
   while(!ETH.linkUp());
 
   clientSetup();
@@ -70,15 +71,12 @@ void loop() {
 
   if(!client.connected()) { // attempt to reconnect to MQTT
     timeout = 0;
+    triggerStop();
+    deviceLoop();
     mqttConnect(client, topicCb);
   }
   else {
     client.loop();
-  }
-
-  if (timeout == 0) { // check if message timeout has triggered
-    triggerStop();
-    debug("estop activated on " + String(clientName) + ", timed out after " + String(ESTOP_TIMEOUT_MILLIS) + "ms");
   }
 
   // run loops, update timeout
@@ -86,6 +84,11 @@ void loop() {
   infoLoop();
   ElegantOTA.loop();
   timeout = max(0, timeout - LOOP_DELAY_MS);
+
+  if (timeout == 0) { // check if message timeout has triggered
+    triggerStop();
+  }
+
   delay(LOOP_DELAY_MS);
 }
 

@@ -29,9 +29,11 @@ float outputAngle = 0.0; // PID steer output
 float targetAngle = steeringCenter; // steer angle target
 float steer_p = 1; // kP steer value
 float steer_i = 0; // kI steer value
-float steer_d = 0.005; // kD steer value
+float steer_d = 0.004; // kD steer value
 
 bool steerStop = false;
+int lastSteerError = 0;
+String steerCode = "";
 
 
 
@@ -66,23 +68,24 @@ float filterEnc(float encValue) {
 
 // reads from the encoder, computes PID, and sets the motor speed.
 void steerLoop() {
-    encRaw = as5600.readAngle(); // change to (-2048,2048)
-    currentAngle = encRaw;
-
-    // if(currentAngle > 1024 && targetAngle < -1024) {
-    //     currentAngle -= ENC_TICKS;
-    // }
-    // if(currentAngle < -1024 && targetAngle > 1024) {
-    //     currentAngle += ENC_TICKS;
-    // }
-    
-    if(!steerStop) {
-        steerPID.Compute();
-        steerController.setSpeed(outputAngle);
+    encRaw = as5600.readAngle(); 
+    lastSteerError = as5600.lastError();
+    if(lastSteerError != 0) { // if encoder got a bad read, stop the motor
+        steerStop = true;
     }
     else {
+        currentAngle = encRaw;
+    }
+    
+    if(!steerStop) { // normal state
+        steerPID.Compute();
+        steerController.setSpeed(outputAngle);
+        steerCode = String("OK");
+    }
+    else { // error state
         steerController.setSpeed(0);
         targetAngle = currentAngle;
+        steerCode = String("STOPPED");
     }
 }
 
