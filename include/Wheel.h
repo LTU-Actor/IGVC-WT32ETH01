@@ -3,7 +3,8 @@
 #ifndef WHEEL_H__
 #define WHEEL_H__
 
-#include "SimpleFOC.h"
+#include <ODriveArduino.h>
+#include <SoftwareSerial.h>
 
 // Wheel motor controller pin definitions
 #define POWER_PIN  12   // wheel throttle power
@@ -12,38 +13,57 @@
 #define HALL_B_PIN 14 // hall sensor B, green
 #define HALL_C_PIN 15 // hall sensor C, blue
 
+#define ODRIVE_TX 14
+#define ODRIVE_RX 15
+
 #define POWER_PWM_CHANNEL 0
 
 #define MAX_PWM 150
 
-const float max_ang_vel = 8.5;
 float currentVelocity = 0.0; // current wheel velocity
 float outputVelocity = 0.0; // PID output wheel velocity
 float targetVelocity = 0.0; // wheel target velocity
 float wheel_p = 1; // kP wheel value
 float wheel_i = 0; // kI wheel value
 float wheel_d = 0; // kD wheel value
-int hallA = 0;
-int hallB = 0;
-int hallC = 0;
 
 int wheelDelay = 0;
 
 bool wheelStop = false;
 String wheelCode = "";
 
-HallSensor hall(HALL_A_PIN, HALL_B_PIN, HALL_C_PIN, 14);
+SoftwareSerial odrv_serial(ODRIVE_RX, ODRIVE_TX);
+ODriveArduino odrv(odrv_serial);
+bool use_odrive = false;
+bool odrive_available = false;
 
+float getODriveVelocity() {
+    odrv_serial.print("r axis0.vel_estimate\n");
+    return odrv.readFloat();
+}
 
-void doA(){hall.handleA();}
-void doB(){hall.handleB();}
-void doC(){hall.handleC();}
+void setODriveState() {
+    odrv_serial.print("r axis0.current_state\n");
+    int current_state = odrv.readInt();
+    if(current_state != 8) {
+        odrv_serial.print("w axis0.requested_state 8");
+    }
+}
+// void setODriveVelocity() {
+//     odrv_serial.print("v 0 ");
+// }
 
 
 // reads from the hall sensor, computes PID, and sends PWM to wheel
 void wheelLoop() {
-    hall.update();
-    currentVelocity = hall.getVelocity();
+    
+    if(odrive_available) {
+        setODriveState();
+        // currentVelocity = getODriveVelocity();
+    }
+    else {
+        currentVelocity = 0;
+    }
 
     if(wheelDelay > 0) {
         wheelStop = true;
@@ -56,14 +76,24 @@ void wheelLoop() {
             outputVelocity = 0;
         }
         else {
-            // outputVelocity = map(targetVelocity, 0, 2.25, 100, MAX_PWM);
             outputVelocity = targetVelocity;
         }
-        ledcWrite(POWER_PWM_CHANNEL, outputVelocity);
+        
+        if(odrive_available) {
+            odrv.setVelocity(0, outputVelocity);
+        }
+        else {
+            ledcWrite(POWER_PWM_CHANNEL, abs(outputVelocity));
+        }
         wheelCode = String("OK");
     }
     else {
-        ledcWrite(POWER_PWM_CHANNEL, 0);
+        if(odrive_available) {
+            odrv.setVelocity(0, 0);
+        }
+        else {
+            ledcWrite(POWER_PWM_CHANNEL, 0);
+        }
         wheelCode = String("STOPPED");
     }
 }

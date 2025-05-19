@@ -50,10 +50,12 @@ void clientSetup() {
     if (mac == String("A8:48:FA:08:57:F3")) {
         clientName =  "frontleft";
         setSteerCenterValue(1561.0);
+        use_odrive = true;
     }
     else if (mac == String("A8:48:FA:08:81:67")) {
         clientName = "frontright";
         setSteerCenterValue(2125.0);
+        use_odrive = true;
     }
     else if (mac == String("A8:48:FA:08:59:57")) { // a8:48:fa:08:57:f3, 192.168.0.7
         clientName = "backleft";
@@ -96,7 +98,7 @@ void releaseStop() {
 
 // power pin callback, sends PWM to wheel power
 void powerCb(String& msg) {
-    targetVelocity = abs(msg.toFloat());
+    targetVelocity = msg.toFloat();
 }
 
 void directionCb(String& msg) {
@@ -108,7 +110,6 @@ void directionCb(String& msg) {
         else {
             digitalWrite(POWER_DIR_PIN, LOW);
             in_reverse = false;
-            // delay(1000);
             wheelDelay = 100;
         }
     }
@@ -119,7 +120,6 @@ void directionCb(String& msg) {
         else {
             digitalWrite(POWER_DIR_PIN, HIGH);
             in_reverse = true;
-            // delay(1000);
             wheelDelay = 100;
         }
     }
@@ -189,6 +189,25 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
     client.subscribe("/" + String(CALIB_STEER_TOPIC));
     client.onMessage(callback);
     return true;
+}
+
+void odriveConnect() {
+    if(use_odrive) {
+        odrv_serial.print("r vbus_voltage\n");
+        float voltage = odrv.readFloat();
+        if(voltage == 0) {
+        //   odrv_serial.end();
+          odrive_available = false;
+        }
+        else {
+          // // clear the rx buffer
+          // while(odrv_serial.available()) {
+          //   debug(String("!!!!!!!!!!!!!!!!!!!!   ") + String(odrv_serial.read()));
+          // }
+          debug(String(voltage));
+          odrive_available = true;
+        }
+    }
 }
 
 void infoLoop() {

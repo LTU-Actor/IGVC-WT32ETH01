@@ -10,8 +10,7 @@ WiFiClient wc;
 
 // sets up pins for input/output
 void deviceSetup() {
-    ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
-    ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
+    
     pinMode(POWER_DIR_PIN, OUTPUT);
     pinMode(STEER_PIN, OUTPUT);
     pinMode(STEER_DIR_PIN, OUTPUT);
@@ -19,20 +18,22 @@ void deviceSetup() {
     Wire.begin();
     as5600.begin(ENC_SCL_PIN);  //  set direction pin.
     as5600.setDirection(AS5600_CLOCK_WISE);  // default, just be explicit.
+    
+    if(use_odrive) {
+      odrv_serial.setTimeout(1);
+      odrv.setTimeout(1);
+      odrv_serial.begin(9600);
+    }
 
-    hall.pullup = Pullup::USE_INTERN;
-    hall.init();
-    hall.enableInterrupts(doA, doB, doC);
+    ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
+    ledcAttachPin(POWER_PIN, POWER_PWM_CHANNEL);
 
-    // wheelPID.SetTunings(wheel_p, wheel_i, wheel_d);
-    // wheelPID.SetMode(1);
     steerPID.SetTunings(steer_p, steer_i, steer_d);
     steerPID.SetMode(1);
 
-    // wheelPID.SetOutputLimits(-255, 255);
     steerPID.SetOutputLimits(-100, 100);
 
-    _delay(1000);
+    delay(1000);
    
 }
 
@@ -48,9 +49,7 @@ void setup() {
   //Serial output setup
   Serial.begin(115200);
   while(!Serial);
-
-  deviceSetup();
-  
+ 
   // Ethernet networking setup
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   ETH.setHostname(clientName.c_str());
@@ -62,8 +61,9 @@ void setup() {
   // MQTT Connection
   client.begin(mqttAddress, 1883, wc);
   while(!mqttConnect(client, topicCb));
-  timeout = ESTOP_TIMEOUT_MILLIS;
 
+  deviceSetup();
+  timeout = ESTOP_TIMEOUT_MILLIS;
   
 }
 
@@ -79,6 +79,7 @@ void loop() {
     client.loop();
   }
 
+  odriveConnect();
   // run loops, update timeout
   deviceLoop();
   infoLoop();
@@ -89,6 +90,8 @@ void loop() {
     triggerStop();
   }
 
+  // debug(String(odrv_serial.isListening()));
+  debug(String("Using ODrive: ") + String(odrive_available));
   delay(LOOP_DELAY_MS);
 }
 
