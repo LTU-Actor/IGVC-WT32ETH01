@@ -32,21 +32,21 @@ int wheelDelay = 0;
 bool wheelStop = false;
 String wheelCode = "";
 
-SoftwareSerial odrv_serial(ODRIVE_RX, ODRIVE_TX);
-ODriveArduino odrv(odrv_serial);
+// SoftwareSerial odrv_serial(ODRIVE_RX, ODRIVE_TX);
+ODriveArduino odrv(Serial);
 bool use_odrive = false;
 bool odrive_available = false;
 
 float getODriveVelocity() {
-    odrv_serial.print("r axis0.vel_estimate\n");
+    Serial.print("r axis0.vel_estimate\n");
     return odrv.readFloat();
 }
 
 void setODriveState() {
-    odrv_serial.print("r axis0.current_state\n");
+    Serial.print("r axis0.current_state\n");
     int current_state = odrv.readInt();
     if(current_state != 8) {
-        odrv_serial.print("w axis0.requested_state 8");
+        Serial.print("w axis0.requested_state 8");
     }
 }
 // void setODriveVelocity() {

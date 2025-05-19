@@ -1,7 +1,7 @@
 #include "WheelController.h"
 #include "OTASetup.h"
 
-#define LOOP_DELAY_MS 10 // how long to delay after each loop
+#define LOOP_DELAY_MS 5 // how long to delay after each loop
 
 // MQTT Setup
 const IPAddress mqttAddress(192,168,0,3);
@@ -20,9 +20,10 @@ void deviceSetup() {
     as5600.setDirection(AS5600_CLOCK_WISE);  // default, just be explicit.
     
     if(use_odrive) {
-      odrv_serial.setTimeout(1);
+      Serial.setTimeout(1);
+      Serial.setRxTimeout(1);
       odrv.setTimeout(1);
-      odrv_serial.begin(9600);
+      Serial.begin(115200);
     }
 
     ledcSetup(POWER_PWM_CHANNEL, 40000, 8);
@@ -45,10 +46,6 @@ void deviceLoop() {
 
 
 void setup() {
-
-  //Serial output setup
-  Serial.begin(115200);
-  while(!Serial);
  
   // Ethernet networking setup
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);

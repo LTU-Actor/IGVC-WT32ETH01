@@ -193,7 +193,7 @@ bool mqttConnect(MQTTClient& client, void callback(String&, String&)) {
 
 void odriveConnect() {
     if(use_odrive) {
-        odrv_serial.print("r vbus_voltage\n");
+        Serial.print("r vbus_voltage\n");
         float voltage = odrv.readFloat();
         if(voltage == 0) {
         //   odrv_serial.end();
@@ -204,7 +204,7 @@ void odriveConnect() {
           // while(odrv_serial.available()) {
           //   debug(String("!!!!!!!!!!!!!!!!!!!!   ") + String(odrv_serial.read()));
           // }
-          debug(String(voltage));
+        //   debug(String(voltage));
           odrive_available = true;
         }
     }
