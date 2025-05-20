@@ -3,7 +3,6 @@
 #ifndef WHEEL_H__
 #define WHEEL_H__
 
-#include <ODriveArduino.h>
 #include <SoftwareSerial.h>
 
 // Wheel motor controller pin definitions
@@ -12,9 +11,6 @@
 #define HALL_A_PIN 4 // hall sensor A, yellow
 #define HALL_B_PIN 14 // hall sensor B, green
 #define HALL_C_PIN 15 // hall sensor C, blue
-
-#define ODRIVE_TX 14
-#define ODRIVE_RX 15
 
 #define POWER_PWM_CHANNEL 0
 
@@ -32,26 +28,23 @@ int wheelDelay = 0;
 bool wheelStop = false;
 String wheelCode = "";
 
-// SoftwareSerial odrv_serial(ODRIVE_RX, ODRIVE_TX);
-ODriveArduino odrv(Serial);
+
 bool use_odrive = false;
 bool odrive_available = false;
 
 float getODriveVelocity() {
     Serial.print("r axis0.vel_estimate\n");
-    return odrv.readFloat();
+    return Serial.parseFloat();
 }
 
 void setODriveState() {
-    Serial.print("r axis0.current_state\n");
-    int current_state = odrv.readInt();
-    if(current_state != 8) {
-        Serial.print("w axis0.requested_state 8");
-    }
+    Serial.print("w axis0.requested_state 8\n");
+    Serial.print("u 0\n");
 }
-// void setODriveVelocity() {
-//     odrv_serial.print("v 0 ");
-// }
+
+void setVelocity(float velocity) {
+    Serial.print(String("v 0 ") + String(velocity) + String(" 0") + '\n');
+}
 
 
 // reads from the hall sensor, computes PID, and sends PWM to wheel
@@ -80,7 +73,8 @@ void wheelLoop() {
         }
         
         if(odrive_available) {
-            odrv.setVelocity(0, outputVelocity);
+            // odrv.setVelocity(0, outputVelocity);
+            setVelocity(outputVelocity);
         }
         else {
             ledcWrite(POWER_PWM_CHANNEL, abs(outputVelocity));
@@ -89,7 +83,7 @@ void wheelLoop() {
     }
     else {
         if(odrive_available) {
-            odrv.setVelocity(0, 0);
+            setVelocity(0);
         }
         else {
             ledcWrite(POWER_PWM_CHANNEL, 0);

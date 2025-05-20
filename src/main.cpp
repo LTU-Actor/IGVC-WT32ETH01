@@ -21,8 +21,6 @@ void deviceSetup() {
     
     if(use_odrive) {
       Serial.setTimeout(1);
-      Serial.setRxTimeout(1);
-      odrv.setTimeout(1);
       Serial.begin(115200);
     }
 
@@ -88,7 +86,7 @@ void loop() {
   }
 
   // debug(String(odrv_serial.isListening()));
-  debug(String("Using ODrive: ") + String(odrive_available));
+  
   delay(LOOP_DELAY_MS);
 }
 
