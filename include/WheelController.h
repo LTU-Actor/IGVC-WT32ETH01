@@ -155,9 +155,13 @@ void PIDCb(String& msg) {
 void topicCb(String& topic, String& msg) {
     if(topic.endsWith(POWER_TOPIC)) {
         powerCb(msg);
+        timeout = ESTOP_TIMEOUT_MILLIS; // reset timeout
+        releaseStop();
     }
     else if(topic.endsWith(STEER_TOPIC)) {
         steerCb(msg);
+        timeout = ESTOP_TIMEOUT_MILLIS; // reset timeout
+        releaseStop();
     }
     else if(topic.endsWith(PID_TOPIC)) {
         PIDCb(msg);
@@ -168,8 +172,7 @@ void topicCb(String& topic, String& msg) {
     else if(topic.endsWith(DIRECTION_TOPIC)) {
         directionCb(msg);
     }
-    timeout = ESTOP_TIMEOUT_MILLIS; // reset timeout
-    releaseStop();
+    
 }
 
 
