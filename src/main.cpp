@@ -14,6 +14,7 @@ void deviceSetup() {
     pinMode(POWER_DIR_PIN, OUTPUT);
     pinMode(STEER_PIN, OUTPUT);
     pinMode(STEER_DIR_PIN, OUTPUT);
+    pinMode(ESTOP_ACTIVATION_PIN, INPUT);
 
     Wire.begin();
     as5600.begin(ENC_SCL_PIN);  //  set direction pin.
@@ -38,6 +39,7 @@ void deviceSetup() {
 
 // runs the updaters for the wheel and steering
 void deviceLoop() {
+  estop_pin_check();
   steerLoop();
   wheelLoop();
 }

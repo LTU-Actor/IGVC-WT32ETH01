@@ -3,14 +3,14 @@
 #ifndef WHEEL_H__
 #define WHEEL_H__
 
-#include <SoftwareSerial.h>
+// #include <SoftwareSerial.h>
 
 // Wheel motor controller pin definitions
 #define POWER_PIN  12   // wheel throttle power
 #define POWER_DIR_PIN 5   // wheel throttle direction
-#define HALL_A_PIN 4 // hall sensor A, yellow
-#define HALL_B_PIN 14 // hall sensor B, green
-#define HALL_C_PIN 15 // hall sensor C, blue
+// #define HALL_A_PIN 4 // hall sensor A, yellow
+// #define HALL_B_PIN 14 // hall sensor B, green
+// #define HALL_C_PIN 15 // hall sensor C, blue
 
 #define POWER_PWM_CHANNEL 0
 

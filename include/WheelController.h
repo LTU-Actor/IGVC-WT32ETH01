@@ -37,6 +37,8 @@
 #define HALL_VEL_TOPIC "velocity" // wheel velocity
 #define HALL_TOPIC "hall" // raw hall values
 
+#define ESTOP_ACTIVATION_PIN 4 // pin for hardware estop, HIGH=normal, LOW=stop
+
 
 #define ESTOP_TIMEOUT_MILLIS 50     // Number of milliseconds to wait between messages to trigger an estop
 
@@ -173,6 +175,13 @@ void topicCb(String& topic, String& msg) {
         directionCb(msg);
     }
     
+}
+
+// reads for an estop on the hardware pin
+void estop_pin_check() {
+    if(digitalRead(ESTOP_ACTIVATION_PIN) == LOW) {
+        triggerStop();
+    }
 }
 
 
